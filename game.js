@@ -163,6 +163,7 @@ function start(){
   try{ track.currentTime = 0 }catch{} waveTimer = 8; spawn = 1.3; lives = 3; floor = 1;
   objects = []; parts = []; floaters = []; keys = {};
   $('#overlay').style.display = 'none'; $('#pause').textContent = 'Ⅱ'; $('#toast').textContent = '';
+  if(window.Album && Album.skin() === 'azul') shield = 3;
   hud(); sfx.start(); startMusic(); toast('PISO 1 · ¡A trepar!');
 }
 $('#start').onclick = start;
@@ -188,6 +189,7 @@ onblur = () => { keys = {}; if(state==='play') pause() };
 
 function skipEnding(){ if(state==='ending' && ending > 1.2 && ending < 7.6) ending = 7.6 }
 onkeydown = e => {
+  if(document.querySelector('#album.show,#al-open.show,#al-detail.show')){ if(e.code==='Escape'){ const d=$('#al-detail.show'), o=$('#al-open.show'); if(d) d.classList.remove('show'); else if(!o && window.Album) Album.close() } return }
   if(['ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
   keys[e.code] = true;
   if((e.code==='Enter' || e.code==='Space') && ['menu','over','win'].includes(state) && !e.repeat){ e.preventDefault(); start(); return }
@@ -219,6 +221,8 @@ function end(win=false){
   $('#overlay p').innerHTML = win
     ? '¡Nivel 1 completado! ¡El profesor huyó por la ventana!<br>' + total + ' bichos · combo máx. x' + maxCombo + ' · bono vidas +' + lives*500 + '<br><b style="font-size:22px">' + score + ' PUNTOS</b>'
     : 'Llegaste al piso ' + floor + ' de 10 · ' + total + ' bichos.<br><b style="font-size:22px">' + score + ' PUNTOS</b><br>¡El profesor sigue durmiendo!';
+  // Recompensa para el álbum
+  if(window.Album){ const m = Album.reward(floor, total, win); $('#overlay p').innerHTML += '<br><span style="color:#d4ff7a;font-weight:900">+' + m + ' MOCO para sobres del álbum</span>' }
   $('#start').textContent = win ? 'JUGAR OTRA VEZ' : 'VOLVER A INTENTAR';
   $('#record').textContent = 'MEJOR AVANCE · ' + Math.min(100, Math.floor(best/10)) + ' % · RÉCORD ' + bestScore + ' PTS';
   if(!win) sfx.lose();
@@ -475,7 +479,9 @@ function draw(){
   }
   const hs = mutation > 0 ? 150 : 135;
   if(inv <= 0 || Math.floor(t*14) % 2 === 0)
-    image('hand-'+(mutation>0 ? 6 : inv>0 ? 5 : happy>0 ? 4 : Math.floor(t*8)%4), x, HAND_Y, hs, hs, Math.sin(t*8)*.025 + tilt);
+    { const hn = 'hand-'+(mutation>0 ? 6 : inv>0 ? 5 : happy>0 ? 4 : Math.floor(t*8)%4), im = images[hn];
+      if(window.Album && Album.skin() && im && im.width) Album.drawHand(g, im, hn, x, HAND_Y, hs, hs, Math.sin(t*8)*.025 + tilt);
+      else image(hn, x, HAND_Y, hs, hs, Math.sin(t*8)*.025 + tilt) }
 
   if(mult() > 1){
     g.font = '900 18px system-ui'; g.textAlign = 'center'; g.fillStyle = '#14210d';
@@ -596,6 +602,9 @@ function step(dt){
     if(keys.ArrowRight || keys.KeyD || keys.right) target += dt*380;
     target = clamp(target, 65, 415);
     const px = x; x += (target - x)*Math.min(1, dt*16);
+    if(window.Album && Album.skin() === 'brillos' && Math.random() < dt*30)
+      parts.push({x:x + (Math.random()-.5)*60, y:HAND_Y + 30 + Math.random()*20, vx:(Math.random()-.5)*40, vy:60+Math.random()*80, life:.6, max:.6,
+        col: ['#ff8ad8','#ffe96b','#7cf3ff','#ffffff'][Math.floor(Math.random()*4)], r:1.5+Math.random()*2.5});
     tilt += (clamp((x - px)/Math.max(dt,.001)/1500, -.25, .25) - tilt)*Math.min(1, dt*10);
     inv = Math.max(0, inv-dt); shield = Math.max(0, shield-dt); cool = Math.max(0, cool-dt);
     mutation = Math.max(0, mutation-dt); happy = Math.max(0, happy-dt); alarm = Math.max(0, alarm-dt);
