@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>La Mano Araña Mutante</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#171c1c;color:#f3e5c6;font:16px system-ui;overflow:hidden}
+button{font:inherit;cursor:pointer;color:inherit}
+#app{height:100dvh;display:grid;grid-template-columns:1fr minmax(300px,480px) 1fr;gap:30px;max-width:1300px;margin:auto;padding:25px}
+aside{align-self:center;padding:20px}
+h1{font-size:clamp(30px,4vw,58px);line-height:1;letter-spacing:-2px;margin:20px 0}
+h1 span{color:#bedb55}
+p{color:#9aaeb1;line-height:1.7}
+small,.eyebrow{color:#bedb55;font:12px monospace;letter-spacing:3px}
+
+/* El gabinete mantiene la proporción 3:5 del canvas (480x800) para no deformar el juego */
+#cabinet{position:relative;overflow:hidden;box-sizing:content-box;align-self:center;justify-self:center;
+  width:min(calc(100% - 10px),calc((100dvh - 60px) * .6));aspect-ratio:3/5;
+  border:5px solid #c8b894;border-radius:18px;box-shadow:0 0 80px #8bff3910;background:#101f25}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+
+#hud{position:absolute;top:0;left:0;right:0;padding:14px 16px 40px;display:flex;justify-content:space-between;
+  background:linear-gradient(#091310f0,#091310aa,transparent);pointer-events:none;font-weight:800}
+#hud small{letter-spacing:0}
+#progress{position:absolute;top:64px;left:18px;width:65%;height:4px;background:#354237;border-radius:2px}
+#bar{height:100%;background:#caed55;width:0;border-radius:2px;transition:width .2s}
+
+#overlay{position:absolute;inset:0;background:linear-gradient(transparent 32%,#101511bb 65%,#101511f5);display:flex;
+  align-items:center;justify-content:flex-end;flex-direction:column;padding:32px 25px 28px;text-align:center}
+#overlay>small:first-child{background:#15221ade;padding:7px;border-radius:5px}
+#overlay h2{font-size:clamp(26px,7vw,34px);line-height:1;margin:12px;display:none}
+#overlay p{margin:8px 0 22px;color:#fff2cf;text-shadow:0 2px 5px black}
+.primary{background:#c1e14d;color:#14210d;border:0;border-radius:12px;padding:17px 32px;font-weight:900;box-shadow:0 5px #65812e}
+.primary:active{transform:translateY(3px);box-shadow:0 2px #65812e}
+
+.controls{position:absolute;bottom:16px;left:16px;right:16px;display:flex;gap:12px}
+.controls button{background:#172e32dd;border:2px solid #c8b894;border-radius:14px;height:55px;flex:1;touch-action:none;font-weight:800;user-select:none;-webkit-user-select:none}
+.controls button:last-child{background:#c4fa50;color:#17230e;flex:1.6}
+.controls button.cooling{background:#3b4a2a;color:#c9d7a6}
+#pause,#sound-mobile{position:absolute;right:12px;background:#172e32;border:1px solid #49625a;border-radius:8px;padding:7px 12px}
+#pause{top:113px}
+#sound-mobile{top:78px}
+#toast{position:absolute;top:27%;width:100%;text-align:center;color:#c4fa50;font-weight:900;font-size:22px;pointer-events:none;background:#18241bbe}
+#toast:empty{display:none}
+
+/* Fuera de la partida se ocultan HUD y controles */
+#cabinet:not(.playing) #hud,#cabinet:not(.playing) #progress,#cabinet:not(.playing) .controls,#cabinet:not(.playing) #pause{visibility:hidden}
+
+.card{border-top:1px solid #294047;padding:20px 0}
+.card b{display:block;margin:8px 0}
+.key{display:inline-block;border:1px solid #45615c;border-radius:6px;padding:3px 9px;color:#c4fa50}
+#sound{background:none;border:1px solid #3a5553;border-radius:10px;padding:10px}
+
+@media(min-width:851px){#sound-mobile{display:none}}
+@media(max-width:850px){
+  #app{display:flex;align-items:center;justify-content:center;padding:0;background:#0c1110}
+  aside{display:none}
+  #cabinet{width:min(100vw,60dvh);border-width:0;border-radius:0}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <div class="eyebrow">ÁLBUM MUTANTE · NIVEL 01</div>
+    <h1>Diez pisos.<br>Un profesor.<br><span>¡La revancha!</span></h1>
+    <p>Algo salió muy mal en el laboratorio.<br>Trepa por las tuberías, la cocina y la biblioteca<br>hasta el dormitorio del profesor.</p>
+    <small>ARCADE · TERROR CÓMICO</small>
+  </aside>
+
+  <main id="cabinet">
+    <canvas id="c" aria-label="Juego de escalada: evita peligros y recoge LUZ"></canvas>
+    <div id="hud">
+      <div><small>PISO</small><br><span id="score">1 / 10</span></div>
+      <div><small>PUNTOS</small><br><span id="points">0</span></div>
+      <div><small>LUZ</small><br><span id="dna">0 / 5</span></div>
+      <div><small>VIDAS</small><br><span id="lives">♥ ♥ ♥</span></div>
+    </div>
+    <button id="pause" aria-label="Pausar">Ⅱ</button>
+    <div id="progress"><div id="bar"></div></div>
+    <button id="sound-mobile" aria-label="Activar o desactivar sonido">♪ ON</button>
+    <div id="toast" role="status"></div>
+    <div class="controls">
+      <button id="left" aria-label="Mover a la izquierda">◀</button>
+      <button id="right" aria-label="Mover a la derecha">▶</button>
+      <button id="web">TELARAÑA</button>
+    </div>
+    <div id="overlay">
+      <small>PROTOTIPO 03 · EL ESCAPE</small>
+      <h2>LA MANO ARAÑA<br><span style="color:#c4fa50">MUTANTE</span></h2>
+      <p>Sube al piso 10. Encuentra al profesor dormido.<br>¡Y dale una sorpresa en la cara!</p>
+      <button id="start" class="primary">CARGANDO…</button>
+      <p style="font-size:12px">Arrastra la mano o usa ← → · Espacio: telaraña · Enter: empezar</p>
+      <small id="record"></small>
+    </div>
+  </main>
+
+  <aside>
+    <button id="sound">SONIDO: ON</button>
+    <div class="card"><small>01 / SOBREVIVE</small><b>El laboratorio no te quiere libre.</b>
+      <p>Esquiva aerosoles, matamoscas, zapatos y moscas gigantes. Cuidado con la <b style="display:inline">sombra roja</b>: un pisotón viene en camino.</p></div>
+    <div class="card"><small>02 / EVOLUCIONA</small><b>Bichos con superpoderes.</b>
+      <p>Amarillo: carga mutante (atrae bichos). Azul: escudo. Verde: recupera una vida. Encadena bichos sin recibir golpes para multiplicar puntos.</p></div>
+    <div class="card"><small>03 / DEFIÉNDETE</small>
+      <p><span class="key">ESPACIO</span> Teje un escudo durante 2 segundos. Se recarga en 6.<br><span class="key">P</span> / <span class="key">ESC</span> Pausa</p></div>
+  </aside>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
