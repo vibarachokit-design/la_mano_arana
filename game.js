@@ -22,7 +22,7 @@ c.width = W; c.height = H;
 const ASSET_BASE = window.ASSET_BASE || 'assets/';
 const images = {};
 const names = ['cover','background-0','background-1','background-2','background-3','background-4','spray','swatter','shoe','fly','firefly','beetle','moth',
-  'professor','bed','professor-scare','professor-run-0','professor-run-1',...Array.from({length:8},(_,i)=>'hand-'+i)];
+  'bed','bed-sleeping','window','prof-crouch','prof-launch','prof-dive','prof-nightcap',...Array.from({length:4},(_,i)=>'prof-run-'+i),...Array.from({length:8},(_,i)=>'hand-'+i)];
 
 // Tamaños de dibujo y cajas de colisión (medio ancho, medio alto) por tipo
 const SIZE = {swatter:[115,155], spray:[130,140], shoe:[110,110], fly:[90,90], firefly:[65,65], beetle:[65,65], moth:[65,65]};
@@ -221,7 +221,7 @@ function end(win=false){
     : 'Llegaste al piso ' + floor + ' de 10 · ' + total + ' bichos.<br><b style="font-size:22px">' + score + ' PUNTOS</b><br>¡El profesor sigue durmiendo!';
   $('#start').textContent = win ? 'JUGAR OTRA VEZ' : 'VOLVER A INTENTAR';
   $('#record').textContent = 'MEJOR AVANCE · ' + Math.min(100, Math.floor(best/10)) + ' % · RÉCORD ' + bestScore + ' PTS';
-  if(win) sfx.win(); else sfx.lose();
+  if(!win) sfx.lose();
   hud();
 }
 
@@ -266,36 +266,158 @@ function professorScream(){
   }catch{}
 }
 
+/* ---------------- ESCENA FINAL ----------------
+   Todo se calcula a partir del tiempo `ending` (sin estado guardado), así la
+   animación es fluida a cualquier FPS y se puede saltar sin romper nada.
+   0.0–3.0  la mano trepa por la cama hasta la cara del profesor dormido
+   3.0–3.5  ¡POF! nube de polvo, el profesor salta fuera de la cama, vuela el gorro
+   3.5–4.4  agachado y temblando: ¡¡AAAAH!!
+   4.4–6.3  corre hacia la ventana (4 cuadros sincronizados con la distancia)
+   6.3–7.4  impulso y clavado por la ventana abierta
+   7.4–10   la mano celebra con su "shh" */
+const lerp = (a,b,k) => a + (b-a)*k;
+const ease = k => { k = clamp(k,0,1); return k*k*(3-2*k) };
+const phase = (e,a,b) => clamp((e-a)/(b-a), 0, 1);
+// Dibuja un sprite a escala fija, anclado abajo al centro (sin "saltos" de tamaño entre cuadros)
+function sprite(name, cx, bottom, scale, angle=0, sx=1, sy=1){
+  const im = images[name]; if(!im || !im.width) return;
+  const w = im.width*scale, h = im.height*scale;
+  g.save(); g.translate(cx, bottom); g.rotate(angle); g.scale(sx, sy); g.drawImage(im, -w/2, -h, w, h); g.restore();
+}
+function spriteC(name, cx, cy, scale, angle=0){
+  const im = images[name]; if(!im || !im.width) return;
+  const w = im.width*scale, h = im.height*scale;
+  g.save(); g.translate(cx, cy); g.rotate(angle); g.drawImage(im, -w/2, -h/2, w, h); g.restore();
+}
+function puff(cx, cy, k, n=10, size=34, seed=1){ // nube de polvo determinista
+  if(k <= 0 || k >= 1) return;
+  g.save(); g.globalAlpha = (1-k)*.9;
+  for(let i=0;i<n;i++){
+    const a = i/n*Math.PI*2 + seed, r = 12 + k*size*(1.2 + ((i*37+seed*11)%10)/10);
+    g.fillStyle = i%2 ? '#efe6d2' : '#cfc3ad';
+    g.beginPath(); g.arc(cx + Math.cos(a)*r, cy + Math.sin(a)*r*.7, (1-k*.5)*(10 + (i*13%7)), 0, Math.PI*2); g.fill();
+  }
+  g.restore();
+}
+const BED = {x:0, w:350, bottom:705};                    // cama (ancho y base en el lienzo)
+const WIN = {cx:356, cy:352, scale:.5};                   // ventana
+const OPEN = {x:WIN.cx-121+64, y:WIN.cy-84+32, w:115, h:116}; // hueco de la ventana (calculado del sprite)
+const FACE = {x:BED.x + BED.w*.25, y:0};                  // cara del profesor, y se calcula al dibujar
+const RUN_FROM = 130, RUN_TO = 300, FLOOR_Y = 772, PROF_S = .44;
+
+function runX(e){ // arranca acelerando y luego corre a velocidad constante
+  const u = phase(e, 4.4, 6.3), s = u < .3 ? u*u/.6 : u - .15;
+  return lerp(RUN_FROM, RUN_TO, s/.85);
+}
+
+function drawRoom(){
+  const wall = g.createLinearGradient(0,0,0,618); wall.addColorStop(0,'#1c1830'); wall.addColorStop(1,'#2b2238');
+  g.fillStyle = wall; g.fillRect(0,0,480,620);
+  g.strokeStyle = '#ffffff10'; g.lineWidth = 2; for(let xx=24; xx<480; xx+=48){ g.beginPath(); g.moveTo(xx,0); g.lineTo(xx,618); g.stroke() }
+  const fl = g.createLinearGradient(0,618,0,800); fl.addColorStop(0,'#4a3826'); fl.addColorStop(1,'#2d2218');
+  g.fillStyle = fl; g.fillRect(0,618,480,182);
+  g.strokeStyle = '#1f170f'; g.lineWidth = 2; for(let yy=640; yy<800; yy+=34){ g.beginPath(); g.moveTo(0,yy); g.lineTo(480,yy); g.stroke() }
+  g.fillStyle = '#20180f'; g.fillRect(0,612,480,8); // zócalo
+  // Cielo nocturno detrás del hueco de la ventana
+  const sky = g.createLinearGradient(0,OPEN.y,0,OPEN.y+OPEN.h); sky.addColorStop(0,'#0b1430'); sky.addColorStop(1,'#26356a');
+  g.fillStyle = sky; g.fillRect(OPEN.x, OPEN.y, OPEN.w, OPEN.h);
+  g.fillStyle = '#f3e7b0'; g.beginPath(); g.arc(OPEN.x+OPEN.w-28, OPEN.y+28, 14, 0, Math.PI*2); g.fill();
+  g.fillStyle = '#0b1430'; g.beginPath(); g.arc(OPEN.x+OPEN.w-22, OPEN.y+24, 12, 0, Math.PI*2); g.fill(); // luna creciente
+  for(let i=0;i<12;i++){ g.globalAlpha = .5 + .5*Math.sin(t*3 + i*1.7); g.fillStyle = '#cfe0ff'; g.fillRect(OPEN.x+8+(i*37)%(OPEN.w-16), OPEN.y+10+(i*53)%(OPEN.h-20), 2, 2) }
+  g.globalAlpha = 1;
+  // Luz de luna en el piso
+  g.fillStyle = '#9fb6ff12'; g.beginPath(); g.moveTo(OPEN.x, OPEN.y+OPEN.h); g.lineTo(OPEN.x+OPEN.w, OPEN.y+OPEN.h); g.lineTo(OPEN.x+OPEN.w-30, 800); g.lineTo(OPEN.x-150, 800); g.closePath(); g.fill();
+  spriteC('window', WIN.cx, WIN.cy, WIN.scale);
+}
+
 function drawFinale(){
   const e = ending;
-  // Escenario: cama a la izquierda y ventana abierta a la derecha
-  g.fillStyle='#152120d9'; g.fillRect(0,80,480,720);
-  g.strokeStyle='#5d6553'; g.lineWidth=2; for(let xx=0;xx<480;xx+=48){ g.beginPath(); g.moveTo(xx,90); g.lineTo(xx,618); g.stroke() }
-  g.fillStyle='#53432e'; g.fillRect(0,618,480,182); g.strokeStyle='#2b271f'; for(let yy=640;yy<800;yy+=34){ g.beginPath(); g.moveTo(0,yy); g.lineTo(480,yy); g.stroke() }
-  g.fillStyle='#9d8350'; g.fillRect(346,270,130,290); g.fillStyle='#142f43'; g.fillRect(355,280,112,270);
-  g.fillStyle='#f0e0a3'; g.beginPath(); g.arc(435,316,17,0,Math.PI*2); g.fill(); g.fillStyle='#66809a'; for(let i=0;i<9;i++) g.fillRect(365+(i*29)%94, 295+(i*47)%230, 2, 2);
-  g.fillStyle='#b59b65'; g.fillRect(339,548,141,13);
-  g.strokeStyle='#a58f61'; g.lineWidth=7; g.beginPath(); g.moveTo(353,280); g.lineTo(318,262); g.lineTo(318,536); g.lineTo(353,550); g.stroke();
-  image('bed',151,577,292,235);
-  if(e < 3){
-    const breath = 1 + Math.sin(t*2.1)*.012; image('professor',140,518,230,175*breath);
-    const a = clamp(e/2.8,0,1), ease = a*a*(3-2*a), hx = 210-123*ease, hy = 720-230*ease;
-    image('hand-'+Math.floor(t*9)%4, hx, hy, 86, 86, -.14*ease);
-    g.fillStyle='#eadfb9'; g.font='italic 22px serif'; g.textAlign='center'; g.fillText('Z',184,420-Math.sin(t*2)*7); g.font='italic 17px serif'; g.fillText('z',204,399-Math.sin(t*2)*7);
-  }else if(e < 4.5){
-    const jolt = Math.sin(e*60)*4; image('professor-scare',151+jolt,478,156,250); image('hand-7',106+jolt,417,86,86,-.2);
-    g.fillStyle='#f6ecbf'; g.strokeStyle='#3d281e'; g.lineWidth=3; g.beginPath(); g.ellipse(256,325,89,38,-.1,0,Math.PI*2); g.fill(); g.stroke();
-    g.fillStyle='#b84430'; g.font='900 28px system-ui'; g.textAlign='center'; g.fillText('¡¡AAAAH!!',256,335);
-  }else{
-    const run = Math.min(1,(e-4.5)/2), px = 151+run*248, py = 496-Math.abs(Math.sin(t*17))*10;
-    if(e < 6.5){ image('professor-run-'+Math.floor(t*11)%2, px, py, 180, 230) }
-    else if(e < 7.5){ const jump = e-6.5; g.save(); g.beginPath(); g.rect(355,280,112,268); g.clip(); image('professor-run-1',399+jump*115,490-jump*80,180*(1-jump*.55),230*(1-jump*.55),jump*.4); g.restore() }
-    image('hand-'+(e>7.5 ? 7 : Math.floor(t*9)%4), 155, 548, 98, 98);
-    if(e > 7.5){ g.fillStyle='#cbe750'; g.font='900 23px system-ui'; g.textAlign='center'; g.fillText('¡LA MANO ARAÑA',240,196); g.fillText('ATACA DE NUEVO!',240,226) }
+  drawRoom();
+
+  // ---- Cama: con el profesor dormido hasta el susto, luego vacía (el cambio se oculta con la nube) ----
+  const sleeping = e < 3.08;
+  let faceY;
+  { const im = images['bed-sleeping']; const s = im && im.width ? BED.w/im.width : .42, h = im && im.width ? im.height*s : 194;
+    faceY = BED.bottom - h + h*.34; FACE.y = faceY;
+    if(sleeping){ const breath = 1 + Math.sin(t*2.1)*.008; sprite('bed-sleeping', BED.x + BED.w/2, BED.bottom, s, 0, 1, breath) }
+    else { const eb = images.bed; sprite('bed', BED.x + BED.w/2 + 6, BED.bottom, eb && eb.width ? (BED.w+10)/eb.width : .58) }
+  }
+  if(e < 3){ // Zzz
+    for(let i=0;i<3;i++){ const k = ((t*.5 + i/3) % 1); g.globalAlpha = Math.sin(k*Math.PI); g.fillStyle = '#eadfb9';
+      g.font = `italic ${14+k*14}px serif`; g.textAlign = 'center'; g.fillText('Z', FACE.x + 20 + k*40, faceY - 30 - k*60) }
+    g.globalAlpha = 1;
+  }
+
+  // ---- Gorro de dormir: sale volando con el susto y cae al piso girando ----
+  if(e >= 3){
+    const k = phase(e, 3, 4.3), cx = lerp(FACE.x - 10, 52, k), cy = faceY - 20 - Math.sin(k*Math.PI)*170 + k*(752 - faceY + 20);
+    spriteC('prof-nightcap', cx, Math.min(cy, 752), .28, k*Math.PI*3);
+  }
+
+  // ---- Profesor ----
+  if(e >= 3.05 && e < 4.4){
+    const k = phase(e, 3.05, 3.5);
+    if(k < 1){ // salto fuera de la cama
+      const kk = ease(k), x = lerp(FACE.x+10, RUN_FROM, kk), y = lerp(faceY + 70, FLOOR_Y, kk) - Math.sin(k*Math.PI)*120;
+      sprite('prof-crouch', x, y, .5, -.35*(1-k));
+    }else{ // aterriza (aplastado un instante) y tiembla
+      const land = phase(e, 3.5, 3.62), squash = 1 - Math.sin(land*Math.PI)*.12, jolt = Math.sin(e*70)*3;
+      sprite('prof-crouch', RUN_FROM + jolt, FLOOR_Y, .5, 0, 2-squash, squash);
+      if(e > 3.55){ // globo de grito
+        const pop = ease(phase(e, 3.55, 3.7));
+        g.save(); g.translate(250, 560); g.scale(pop, pop);
+        g.fillStyle='#f6ecbf'; g.strokeStyle='#3d281e'; g.lineWidth=3; g.beginPath(); g.ellipse(0,0,96,40,-.08,0,Math.PI*2); g.fill(); g.stroke();
+        g.beginPath(); g.moveTo(-60,28); g.lineTo(-95,70); g.lineTo(-30,36); g.fill();
+        g.fillStyle='#b84430'; g.font='900 30px system-ui'; g.textAlign='center'; g.fillText('¡¡AAAAH!!', 0, 10); g.restore();
+      }
+    }
+  }else if(e >= 4.4 && e < 6.3){ // carrera
+    const x = runX(e), dist = x - RUN_FROM, f = Math.floor(dist/15) % 4, bob = Math.abs(Math.sin(dist/15*Math.PI/2))*7;
+    sprite('prof-run-'+f, x, FLOOR_Y - bob, PROF_S, .05);
+    // polvo en los pies (se repite cada paso)
+    for(let p=0;p<3;p++){ const kd = ((dist/15 + p*1.33) % 4)/4; puff(x - 50 - kd*30, FLOOR_Y - 8, kd, 5, 14, p) }
+  }else if(e >= 6.3 && e < 7.4){
+    const k = phase(e, 6.3, 6.5);
+    if(k < 1){ sprite('prof-launch', lerp(RUN_TO, RUN_TO+15, k), lerp(FLOOR_Y, FLOOR_Y-40, ease(k)), PROF_S, -.15*k) }
+    else{
+      const q = phase(e, 6.5, 7.4);
+      let cx, cy, sc, ang;
+      if(q < .75){ // arco hacia el centro del hueco
+        const u = ease(q/.75), P0 = [RUN_TO+30, FLOOR_Y-110], P1 = [RUN_TO+10, OPEN.y+10], P2 = [OPEN.x+OPEN.w/2, OPEN.y+OPEN.h/2];
+        cx = (1-u)*(1-u)*P0[0] + 2*(1-u)*u*P1[0] + u*u*P2[0]; cy = (1-u)*(1-u)*P0[1] + 2*(1-u)*u*P1[1] + u*u*P2[1];
+        sc = lerp(PROF_S, .2, u); ang = lerp(-.7, 0, u);
+        spriteC('prof-dive', cx, cy, sc, ang);
+      }else{ // atraviesa la ventana: se recorta al hueco y se aleja
+        const u = (q-.75)/.25; cx = lerp(OPEN.x+OPEN.w/2, OPEN.x+OPEN.w+70, u); cy = lerp(OPEN.y+OPEN.h/2, OPEN.y+OPEN.h/2-25, u); sc = lerp(.2,.12,u);
+        g.save(); g.beginPath(); g.rect(OPEN.x, OPEN.y, OPEN.w, OPEN.h); g.clip(); spriteC('prof-dive', cx, cy, sc, -.1*u); g.restore();
+      }
+    }
+  }
+
+  // ---- Nube del susto (tapa el cambio de cama) ----
+  puff(FACE.x + 10, faceY + 10, phase(e, 2.98, 3.7), 14, 70, 2);
+  if(e >= 2.98 && e < 3.2){ g.fillStyle = `rgba(255,255,240,${(1-phase(e,2.98,3.2))*.7})`; g.fillRect(0,0,W,H) }
+
+  // ---- La mano ----
+  if(e < 3){ // trepa por la cama con una curva suave
+    const k = ease(phase(e, .2, 2.85)), P0 = [300, 820], P1 = [250, 560], P2 = [FACE.x + 36, faceY + 4];
+    const hx = (1-k)*(1-k)*P0[0] + 2*(1-k)*k*P1[0] + k*k*P2[0], hy = (1-k)*(1-k)*P0[1] + 2*(1-k)*k*P1[1] + k*k*P2[1];
+    image('hand-'+(k < 1 ? Math.floor(t*10)%4 : 4), hx, hy, 82, 82, -.25*k + Math.sin(t*12)*.04*(1-k));
+  }else if(e < 7.4){ // sobre la almohada, feliz con la travesura
+    image('hand-'+(e < 4.4 ? 4 : Math.floor(t*8)%4), FACE.x + 20, faceY + 6 - Math.abs(Math.sin(t*6))*4, 82, 82, -.1);
+  }else{ // salta al piso y hace "shh"
+    const k = ease(phase(e, 7.4, 7.9)), hx = lerp(FACE.x + 20, 236, k), hy = lerp(faceY + 6, 735, k) - Math.sin(k*Math.PI)*90;
+    image('hand-'+(k < 1 ? 4 : 7), hx, hy, k < 1 ? 82 : 110, k < 1 ? 82 : 110);
+  }
+
+  if(e > 7.6){
+    const k = ease(phase(e, 7.6, 8)); g.save(); g.translate(240, 205); g.scale(k, k);
+    g.fillStyle='#14210d'; g.font='900 26px system-ui'; g.textAlign='center'; g.fillText('¡LA MANO ARAÑA',2,-13); g.fillText('ATACA DE NUEVO!',2,19);
+    g.fillStyle='#cbe750'; g.fillText('¡LA MANO ARAÑA',0,-15); g.fillText('ATACA DE NUEVO!',0,17); g.restore();
   }
   g.fillStyle='#f1e3bf'; g.font='bold 18px system-ui'; g.textAlign='center';
-  g.fillText(e<3 ? 'Chuuut… el profesor duerme.' : e<4.5 ? '¡Una mano en mi cara!' : e<7.5 ? '¡Corre, profesor, corre!' : '¡Nivel 1 completado!', 240, 120);
-  if(state==='ending' && e > 1.2 && e < 7.6){ g.globalAlpha = .55 + Math.sin(t*4)*.25; g.font='13px system-ui'; g.fillText('Toca o pulsa Espacio para saltar', 240, 780); g.globalAlpha = 1 }
+  g.fillText(e<3 ? 'Chuuut… el profesor duerme.' : e<4.4 ? '¡Una mano en mi cara!' : e<7.4 ? '¡Corre, profesor, corre!' : '¡Nivel 1 completado!', 240, 120);
+  if(state==='ending' && e > 1.2 && e < 7.6){ g.globalAlpha = .55 + Math.sin(t*4)*.25; g.font='13px system-ui'; g.fillText('Toca o pulsa Espacio para saltar', 240, 790); g.globalAlpha = 1 }
 }
 
 function drawWarnings(){
@@ -441,10 +563,17 @@ function step(dt){
 
   if(state === 'ending'){
     const before = ending; ending += dt;
-    if(before < 3 && ending >= 3) professorScream();
-    if(before < 5 && ending >= 5) sound(180,.16);
-    if(ending >= 4.5 && ending < 6.5 && Math.floor(before*5) !== Math.floor(ending*5)) sound(95,.035);
-    if(ending >= 9) end(true);
+    const cross = x => before < x && ending >= x;
+    if(cross(2.98)){ professorScream(); noise(.35,.1,700) }
+    if(cross(3.5)){ noise(.18,.12,180); tone(90,.2,'sine',.08) }       // aterrizaje
+    if(ending >= 4.4 && ending < 6.3){                                   // pasos sincronizados con la carrera
+      const s0 = Math.floor((runX(before)-RUN_FROM)/30), s1 = Math.floor((runX(ending)-RUN_FROM)/30);
+      if(s1 !== s0) { tone(110,.05,'triangle',.06,0,.6); noise(.05,.04,400) }
+    }
+    if(cross(6.3)) tone(240,.25,'triangle',.05,0,2.5);                  // impulso
+    if(cross(6.5)) noise(.6,.06,1500,0,null,.5);                         // whoosh
+    if(cross(7.6)) sfx.win();
+    if(ending >= 10) end(true);
   }
 
   if(state === 'play'){
