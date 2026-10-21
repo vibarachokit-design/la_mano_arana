@@ -20,7 +20,8 @@ Incluye un álbum de 40 láminas coleccionables.
 - Los edificios se desbloquean de a uno al ganar el anterior.
 - Sobres: uno de bienvenida y uno especial de 3 láminas (con una rara o mejor) la primera vez que completas cada edificio. Se abren con animación en el álbum.
 - Los puntos de cada partida van a un monedero: cada lámina sorpresa adicional cuesta 3.000 puntos.
-- El avance se guarda en el navegador.
+- Cada edificio es más difícil que el anterior (más peligros, más rápidos y con menos aviso).
+- El avance se guarda en el navegador. En el álbum, "Respaldo del avance" permite copiar un código o descargar un archivo para recuperarlo o pasarlo a otro dispositivo.
 - Para probar todos los edificios sin jugar: agrega `?desbloquear` al final de la dirección.
 
 ## Estructura

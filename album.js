@@ -95,6 +95,33 @@
     [...po.cardsBox.children].forEach((c,i)=>{c.classList.add('in');flipCard(i);});finish();
   }
   function closeReveal(){po.timers.forEach(clearTimeout);po.timers=[];po.phase='off';po.el.hidden=true;po.cardsBox.replaceChildren();(q('#open-pack').disabled?q('#album-close'):q('#open-pack')).focus();}
+
+  /* ================= RESPALDO DEL AVANCE =================
+     Código de texto con la colección, monedero, edificios abiertos y récords.
+     Formato: MANO1.<datos en base64>.<suma de control>. Al cargarlo se recarga la página. */
+  const BK_KEYS=['mano-album-v1','mano-unlocked-v1','mano-best-v2','mano-best-score-v3'];
+  const bkHash=s=>{let h=5381;for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))>>>0;return h.toString(36);};
+  function bkExport(){const d={};for(const k of BK_KEYS){try{const v=localStorage.getItem(k);if(v!==null)d[k]=v;}catch{}}
+    d['mano-album-v1']=JSON.stringify(data);const json=JSON.stringify({v:1,fecha:new Date().toISOString().slice(0,10),d});
+    const b64=btoa(unescape(encodeURIComponent(json)));return `MANO1.${b64}.${bkHash(b64)}`;}
+  function bkParse(text){const m=String(text||'').replace(/\s+/g,'').match(/MANO1\.([A-Za-z0-9+/=]+)\.([a-z0-9]+)/);
+    if(!m)throw new Error('No parece un código de respaldo de La Mano Araña.');
+    if(bkHash(m[1])!==m[2])throw new Error('El código está incompleto o tiene un error. Cópialo completo de nuevo.');
+    const o=JSON.parse(decodeURIComponent(escape(atob(m[1]))));if(!o||o.v!==1||!o.d||!o.d['mano-album-v1'])throw new Error('El respaldo no tiene datos válidos.');
+    const a=JSON.parse(o.d['mano-album-v1']);if(!a||!Array.isArray(a.counts))throw new Error('El respaldo no tiene una colección válida.');
+    const owned=cards.filter(c=>a.counts[c.id-1]>0).length,un=Math.min(6,Math.max(1,parseInt(o.d['mano-unlocked-v1'])||1));
+    return {o,summary:`Respaldo del ${o.fecha||'?'}: ${owned}/${TOTAL} láminas · ${(a.points|0).toLocaleString('es-CL')} pts en el monedero · ${un}/6 edificios abiertos · récord ${(parseInt(o.d['mano-best-score-v3'])||0).toLocaleString('es-CL')} pts.`};}
+  let bkPending=null;const bkMsg=(t,bad)=>{const m=q('#bk-msg');m.textContent=t;m.classList.toggle('bad',!!bad);};
+  function bkCheck(text){bkPending=null;q('#bk-apply').hidden=true;try{const r=bkParse(text);bkPending=r.o;bkMsg(r.summary+' Si lo cargas, reemplazará tu avance actual en este navegador.');q('#bk-apply').hidden=false;}catch(e){bkMsg(e.message,true);}}
+  q('#bk-copy').onclick=async()=>{const code=bkExport(),out=q('#bk-out');out.value=code;out.hidden=false;out.focus();out.select();
+    let ok=false;try{await navigator.clipboard.writeText(code);ok=true;}catch{try{ok=document.execCommand('copy');}catch{}}
+    bkMsg(ok?'Código copiado. Guárdalo en un lugar seguro (por ejemplo, envíatelo por correo).':'Selecciona el código y cópialo manualmente.');};
+  q('#bk-download').onclick=()=>{const blob=new Blob([bkExport()+'\n'],{type:'text/plain'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=`mano-arana-respaldo-${new Date().toISOString().slice(0,10)}.txt`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);bkMsg('Archivo de respaldo descargado.');};
+  q('#bk-check').onclick=()=>bkCheck(q('#bk-input').value);
+  q('#bk-file').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{q('#bk-input').value=t.trim();bkCheck(t);}).catch(()=>bkMsg('No se pudo leer el archivo.',true));e.target.value='';};
+  q('#bk-apply').onclick=()=>{if(!bkPending)return;try{for(const k of BK_KEYS)localStorage.removeItem(k);for(const [k,v] of Object.entries(bkPending.d))if(BK_KEYS.includes(k))localStorage.setItem(k,v);}catch{bkMsg('Este navegador no permite guardar datos.',true);return;}
+    bkMsg('¡Avance cargado! Reiniciando…');setTimeout(()=>location.reload(),600);};
   po.el.addEventListener('click',e=>{if(e.target.closest('.po-done')){closeReveal();return;}if(po.phase==='sealed'){if(e.target.closest('.po-pack'))tearPack();return;}skip();});
 
   // Suma una lámina y recuerda si era nueva (para el aviso ¡NUEVA!).
@@ -106,7 +133,7 @@
   function show(e){if(state==='ending')return;opener=e&&e.currentTarget;resume=state==='play';if(resume)pause();opened=true;window.albumOpen=true;panel.hidden=false;render();q('#album-close').focus();}
   let opener=null;
   function close(){if(!po.el.hidden)closeReveal();viewer.hidden=true;panel.hidden=true;opened=false;window.albumOpen=false;if(resume&&state==='paused'&&!document.hidden)pause();resume=false;(opener&&opener.offsetParent?opener:q('#start')).focus();}
-  document.addEventListener('keydown',e=>{if(!opened)return;e.stopImmediatePropagation();if(!po.el.hidden){if(['Enter','Space','Escape','NumpadEnter'].includes(e.code)){e.preventDefault();if(po.phase==='done')closeReveal();else skip();}if(e.code==='Tab'){e.preventDefault();(po.done.hidden?po.pack:po.done).focus();}return;}if(e.code==='Escape'){e.preventDefault();if(!viewer.hidden)closeCard();else close();}if(e.code==='Tab'){const root=viewer.hidden?panel:viewer;const focus=[...root.querySelectorAll('button:not(:disabled),select')];const first=focus[0],last=focus[focus.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}},true);
+  document.addEventListener('keydown',e=>{if(!opened)return;e.stopImmediatePropagation();if(!po.el.hidden){if(['Enter','Space','Escape','NumpadEnter'].includes(e.code)){e.preventDefault();if(po.phase==='done')closeReveal();else skip();}if(e.code==='Tab'){e.preventDefault();(po.done.hidden?po.pack:po.done).focus();}return;}if(e.code==='Escape'){e.preventDefault();if(!viewer.hidden)closeCard();else close();}if(e.code==='Tab'){const root=viewer.hidden?panel:viewer;const focus=[...root.querySelectorAll('button:not(:disabled):not([hidden]),select,summary,textarea:not([hidden]),input')].filter(el=>el.offsetParent);const first=focus[0],last=focus[focus.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}},true);
   q('#album-launch').onclick=q('#album-menu').onclick=show;q('#album-close').onclick=close;q('#card-close').onclick=closeCard;q('#open-pack').onclick=openPack;q('#craft-card').onclick=craft;q('#buy-card').onclick=buy;q('#album-filter').onchange=render;
   // Solo se gana un sobre de 3 láminas la primera vez que se completa cada edificio. Los pisos ya no dan sobres.
   window.mutantAlbum={newRun(){awarded.clear();},floor(){return false;},addPoints(n){n=Math.max(0,Math.floor(Number(n)||0));data.points+=n;save();return data.points;},win(){if(awarded.has('win'))return false;awarded.add('win');const k=building+'-win';if(data.earned[k])return false;data.earned[k]=true;data.packs++;data.special++;save();return true;},snapshot(){return JSON.parse(JSON.stringify(data));}};

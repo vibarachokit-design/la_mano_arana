@@ -15,7 +15,9 @@ ESTADO ACTUAL
 - Monedero: los puntos de cada partida se guardan; cada lámina adicional cuesta 3.000.
 - Repetidas: cada copia extra vale 10 ADN; con 30 ADN consigues una especial que falte.
 - Música: una canción por edificio (5 y 6 usan provisoriamente las de los niveles 1 y 2).
-- Todo el avance se guarda en el navegador; no hay sincronización en línea.
+- Dificultad: sube del edificio 1 al 6 (tabla TUNING al inicio de game.js).
+- Todo el avance se guarda en el navegador; no hay sincronización en línea. En el álbum,
+  "Respaldo del avance" copia un código o descarga un archivo para recuperarlo o moverlo.
 - El logo original en PNG ya no está en assets (el juego usa logo-oficial.webp);
   se puede recuperar desde el historial de GitHub.
 
@@ -103,3 +105,13 @@ abajo y se dan vuelta una a una, con brillo según rareza y aviso ¡NUEVA! si no
 Tocar la pantalla, Enter o Espacio adelantan la animación. Compras y canjes de ADN muestran
 la misma revelación de una lámina. Con "reducir movimiento" activado, se muestran sin animación.
 Los sobres de 1 lámina sin abrir de versiones anteriores se pueden seguir abriendo.
+
+VERSIÓN 17 — DIFICULTAD, RESPALDO Y NITIDEZ
+Dificultad creciente: tabla TUNING en game.js con velocidad de caída, frecuencia de peligros
+y segundos de aviso amarillo por edificio. Los bichos de premio salen con la misma frecuencia
+en todos los edificios; los difíciles solo suman peligros. Calibrado con un jugador automático
+(40 subidas por edificio): golpes promedio 3,8 · 4,7 · 5,7 · 6,6 · 7,0 · 8,0 del edificio 1 al 6.
+Respaldo del avance en el álbum: copiar código, descargar archivo, revisar y cargar un respaldo.
+Incluye colección, sobres, ADN, monedero, edificios abiertos y récords. Códigos con suma de
+control: si están incompletos, se rechazan sin tocar el avance actual.
+Nitidez: el lienzo usa la densidad de la pantalla (hasta 2x), así se ve nítido en celulares.

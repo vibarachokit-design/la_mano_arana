@@ -11,7 +11,7 @@ function spawnMutantHazard(px,asWave=false){
   const index=asWave?Math.floor(Math.random()*3):Math.floor(Math.random()*(floor<3?3:6));
   const [label,kind]=MUTANT_HAZARDS[building][index];
   const side=px??(kind==='jet'?(Math.random()<.5?80:400):75+Math.random()*330);
-  objects.push({mutant:true,type:'mutant',building,index,label,kind,x:side,origin:side,y:asWave?-100:-80,pick:false,phase:Math.random()*6,vy:baseSpeed()*(1+(building-2)*.04),armed:false,active:false,warning:.95,age:0,wave:asWave});
+  objects.push({mutant:true,type:'mutant',building,index,label,kind,x:side,origin:side,y:asWave?-100:-80,pick:false,phase:Math.random()*6,vy:baseSpeed()*(1+(building-2)*.04),armed:false,active:false,warning:tune().warn,age:0,wave:asWave});
 }
 function updateMutantHazard(o,dt){
   if(!o.armed){o.y+=o.vy*dt;if(o.y>=370){o.armed=true;o.y=370; if(!o.wave)sfx.warn();}return;}

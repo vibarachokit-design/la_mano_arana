@@ -18,6 +18,14 @@
 const $ = s => document.querySelector(s);
 const c = $('#c'), g = c.getContext('2d');
 const W = 480, H = 800, HAND_Y = 605;
+// El juego se dibuja en coordenadas fijas de 480x800, pero el lienzo usa la densidad real de la
+// pantalla (hasta 2x) para que la imagen se vea nítida en celulares y pantallas retina.
+let DPR = 1;
+function fitCanvas(){
+  const r = c.getBoundingClientRect(), ratio = window.devicePixelRatio || 1;
+  const want = clamp(Math.round(Math.max(1, ratio * (r.width || W) / W) * 4) / 4, 1, 2);
+  if(want !== DPR || c.width !== Math.round(W*want)){ DPR = want; c.width = Math.round(W*DPR); c.height = Math.round(H*DPR) }
+}
 c.width = W; c.height = H;
 
 const ASSET_BASE = window.ASSET_BASE || 'assets/';
@@ -39,8 +47,20 @@ try{ best = +localStorage.getItem('mano-best-v2') || 0; bestScore = +localStorag
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const rand = arr => arr[Math.floor(Math.random()*arr.length)];
 const mult = () => 1 + Math.min(4, Math.floor(combo/5));
-const baseSpeed = () => 155 + floor*15;
 let building = 1;
+/* Dificultad por edificio: cada uno es un poco más difícil que el anterior.
+   speed = velocidad de caída · spawn = intervalo entre apariciones (menor = más peligros)
+   warn  = segundos de aviso amarillo antes de que ataquen los enemigos de los edificios 2–6.
+   Calibrado con un jugador automático para que los golpes recibidos suban del 1 al 6. */
+const TUNING = [null,
+  {speed:1.00, spawn:1.00, warn:.95},
+  {speed:1.02, spawn:1.05, warn:.95},
+  {speed:1.05, spawn:0.72, warn:.90},
+  {speed:1.08, spawn:0.76, warn:.85},
+  {speed:1.12, spawn:0.56, warn:.80},
+  {speed:1.16, spawn:0.62, warn:.75}];
+const tune = () => TUNING[building] || TUNING[1];
+const baseSpeed = () => (155 + floor*15) * tune().speed;
 const BUILDINGS = ['Laboratorio del profesor','Alcantarillas Mutantes','Invernadero Carnívoro','Museo de los Bichos','Fábrica Tóxica','Observatorio Chiflado'];
 const BUILDING_ZONES = [null,['DESAGÜES','TUBERÍAS','SALA DE BOMBAS','CISTERNA','ÁTICO'],['SEMILLERO','RAÍCES','INVERNADERO','ENREDADERAS','ÁTICO BOTÁNICO'],['DEPÓSITO','INSECTOS','FÓSILES','BIBLIOTECA','ÁTICO DEL MUSEO'],['CALDERAS','MAQUINARIA','CUBAS TÓXICAS','SALA ELÉCTRICA','ÁTICO INDUSTRIAL'],['LABORATORIO CÓSMICO','ENGRANAJES','METEORITOS','CARTAS CELESTES','OBSERVATORIO']];
 /* ---------- Edificios bloqueados: se abren de a uno al ganar el anterior ----------
@@ -489,6 +509,7 @@ function drawWarnings(){
 }
 
 function draw(){
+  g.setTransform(DPR,0,0,DPR,0,0); g.imageSmoothingQuality = 'high';
   g.clearRect(0,0,W,H); g.fillStyle='#142825'; g.fillRect(0,0,W,H);
   if(['loading','menu'].includes(state)){
     const im = images.cover;
@@ -654,8 +675,9 @@ function step(dt){
 
     spawn -= dt;
     if(spawn <= 0){
-      spawn = Math.max(.48, 1 - floor*.045) * (alarm > 0 ? .65 : 1);
-      if(Math.random() < (alarm > 0 ? .3 : .43)) spawnPickup(); else spawnHazard();
+      spawn = Math.max(.48, 1 - floor*.045) * (alarm > 0 ? .65 : 1) * tune().spawn;
+      // La probabilidad de bicho se ajusta para que los edificios difíciles sumen peligros, no premios.
+      if(Math.random() < (alarm > 0 ? .3 : .43) * tune().spawn) spawnPickup(); else spawnHazard();
     }
     if(floor >= 6){ waveTimer -= dt; if(waveTimer <= 0){ waveTimer = 7 + Math.random()*3; spawnWave(); spawn = 1.3 } }
 
@@ -697,4 +719,6 @@ Promise.all(names.map(name => new Promise((resolve, reject) => {
   $('#start').textContent = 'RECARGAR IMÁGENES'; $('#start').onclick = () => location.reload();
   $('#record').textContent = 'No se pudieron cargar las imágenes. Intenta recargar.';
 });
+addEventListener('resize', fitCanvas);
+fitCanvas();
 requestAnimationFrame(frame);
