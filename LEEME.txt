@@ -9,11 +9,14 @@ ESTADO ACTUAL
 - 6 edificios de 10 pisos. Solo el 1 está abierto al empezar; ganar uno abre el siguiente.
   Para probar todos sin jugar: agrega ?desbloquear al final de la dirección.
 - Álbum de 40 láminas (01–37 y 41–43; 38–40 reservadas).
-- Sobres: uno de bienvenida (3 láminas) y uno especial de 3 láminas (rara o mejor) la
-  primera vez que completas cada edificio. Los pisos ya no dan sobres.
-- Abrir sobre: animación (tocar el sobre, se rompe, las láminas se dan vuelta).
-- Monedero: los puntos de cada partida se guardan; cada lámina adicional cuesta 3.000.
-- Repetidas: cada copia extra vale 10 ADN; con 30 ADN consigues una especial que falte.
+- Sobres: superar un edificio por primera vez regala un sobre de 3 láminas (rara o mejor)
+  que se abre al tiro con animación. No hay sobre de bienvenida ni sobres por piso.
+- Moco puntos: los puntos de cada partida se guardan. Sobre de 3 láminas: 9.000.
+  Lámina suelta: 3.000. (PACK_PRICE y PRICE en album.js.)
+- ADN: 1 por cada 2 bichos y 10 extra al superar un edificio; 10 por cada repetida canjeada.
+  Se usa en POTENCIAR (mejoras de la mano) o para canjear una especial faltante (30 ADN).
+- Mejoras (tabla UPGRADES en game.js): escudo de telaraña (3 niveles), vida extra (2),
+  imán de bichos (3) y mutación más larga (3).
 - Música: una canción por edificio (5 y 6 usan provisoriamente las de los niveles 1 y 2).
 - Dificultad: sube del edificio 1 al 6 (tabla TUNING al inicio de game.js).
 - Todo el avance se guarda en el navegador; no hay sincronización en línea. En el álbum,
@@ -115,3 +118,17 @@ Respaldo del avance en el álbum: copiar código, descargar archivo, revisar y c
 Incluye colección, sobres, ADN, monedero, edificios abiertos y récords. Códigos con suma de
 control: si están incompletos, se rechazan sin tocar el avance actual.
 Nitidez: el lienzo usa la densidad de la pantalla (hasta 2x), así se ve nítido en celulares.
+
+VERSIÓN 18 — SOBRE AL TIRO, MOCO PUNTOS Y POTENCIAR
+Superar un edificio por primera vez abre su sobre de 3 láminas al tiro, sobre la pantalla de
+victoria: el contador de sobres queda en cero hasta superar el siguiente edificio.
+Se quita el sobre de bienvenida. Los sobres guardados de versiones anteriores siguen
+apareciendo en el álbum como "Abrir sobre guardado" hasta abrirlos.
+Monedero en moco puntos: sobre de 3 láminas a 9.000 (con animación) y lámina suelta a 3.000.
+Menú POTENCIAR (portada y pantalla de resultado, también desde el álbum): mejoras con ADN.
+  Escudo de telaraña: 20/40/70 ADN · dura 2,7/3,2/3,7 s y recarga en 5,4/4,8/4,2 s.
+  Vida extra: 40/80 ADN · empiezas con 4/5 vidas.
+  Imán de bichos: 20/40/70 ADN · atrae bichos de premio a 80/120/160 px.
+  Mutación más larga: 20/40/70 ADN · dura 9/11/13 s; desde el nivel 2 se activa con 4 luces.
+Cada partida da ADN: 1 por cada 2 bichos y 10 extra si superas el edificio.
+Las mejoras se guardan con la colección y se incluyen en el respaldo del avance.

@@ -63,8 +63,23 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
 }
 
 #album-launch{position:absolute;top:153px;right:12px;background:#452657;border:1px solid #dac684;border-radius:8px;padding:8px;z-index:3}
-#album-panel{position:fixed;inset:0;z-index:30;background:#171020;color:#f7edce;overflow:auto;padding:max(18px,env(safe-area-inset-top)) 16px 40px;overscroll-behavior:contain}
-#album-panel[hidden],#card-view[hidden]{display:none}
+#album-panel,#upgrade-panel{position:fixed;inset:0;z-index:30;background:#171020;color:#f7edce;overflow:auto;padding:max(18px,env(safe-area-inset-top)) 16px 40px;overscroll-behavior:contain}
+#album-panel[hidden],#card-view[hidden],#upgrade-panel[hidden],#open-pack[hidden]{display:none}
+#upgrade-panel{background:radial-gradient(circle at 50% 0,#2b3d1d,#13190f 60%)}
+#up-status,.up-note{max-width:1000px;margin:12px auto;line-height:1.6;color:#d9f47c}
+.up-note{color:#c6b8ca}
+#up-grid{max-width:1000px;margin:18px auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.up-card{display:flex;gap:14px;align-items:flex-start;background:#1f2a18;border:1px solid #6b8a3a;border-radius:14px;padding:14px}
+.up-card img{width:72px;height:72px;object-fit:contain;flex:none;filter:drop-shadow(0 4px 8px #000a)}
+.up-card h3{margin:0 0 4px;font-size:18px;color:#e8ffb0}
+.up-card p{margin:3px 0;font-size:14px;line-height:1.4;color:#e6dcc3}
+.up-card .up-lvl{color:#c4fa50;font:700 13px monospace;letter-spacing:1px}
+.up-card .up-next{color:#a9b89a}
+.up-card button{margin-top:8px;background:#c1e14d;color:#14210d;border:0;border-radius:10px;padding:10px 14px;font-weight:900;box-shadow:0 4px #65812e}
+.up-card button:disabled{background:#3b4a2a;color:#a9b89a;box-shadow:none;cursor:default}
+.up-card.maxed{border-color:#e0b13f}
+.up-flash{animation:up-flash .7s}
+@keyframes up-flash{30%{box-shadow:0 0 0 4px #c4fa50,0 0 30px #c4fa50}}
 .album-head{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1000px;margin:auto}
 .album-head h2{margin:8px 0;color:#d2ed65}.album-close{padding:12px;background:#392444;border:1px solid #baaa80;border-radius:10px}
 .album-toolbar{max-width:1000px;margin:18px auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -206,7 +221,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
       <h2>LA MANO ARAÑA<br><span style="color:#c4fa50">MUTANTE</span></h2>
       <p>Sube al piso 10. Encuentra al profesor dormido.<br>¡Y dale una sorpresa en la cara!</p>
       <label style="display:block;margin:8px">Elige edificio <select id="building-select" style="display:block;max-width:100%;padding:10px;margin:6px auto;background:#261b30;color:#f8edcf;border:1px solid #b9a479;border-radius:8px"><option value="1" selected>1 · Laboratorio del profesor</option><option value="2">2 · Alcantarillas Mutantes</option><option value="3">3 · Invernadero Carnívoro</option><option value="4">4 · Museo de los Bichos</option><option value="5">5 · Fábrica Tóxica</option><option value="6">6 · Observatorio Chiflado</option></select></label>
-      <div class="menu-row"><button id="start" class="primary">CARGANDO…</button><button id="album-menu" class="secondary" aria-label="Abrir álbum de láminas">ÁLBUM · 0/40</button><button id="sound-menu" class="secondary" aria-label="Activar o desactivar sonido">♪ ON</button></div>
+      <div class="menu-row"><button id="start" class="primary">CARGANDO…</button><button id="album-menu" class="secondary" aria-label="Abrir álbum de láminas">ÁLBUM · 0/40</button><button id="upgrade-menu" class="secondary" aria-label="Potenciar la mano con ADN">POTENCIAR · 0 ADN</button><button id="sound-menu" class="secondary" aria-label="Activar o desactivar sonido">♪ ON</button></div>
       <p id="hint" style="font-size:12px">Arrastra la mano o usa ← → · Espacio: telaraña · Enter: empezar</p>
       <small id="record"></small>
     </div>
@@ -225,11 +240,12 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
 <section id="album-panel" role="dialog" aria-modal="true" aria-labelledby="album-title" hidden>
 <header class="album-head"><div><small>COLECCIÓN 01</small><h2 id="album-title">Álbum mutante</h2></div><button class="album-close" id="album-close">Volver al juego</button></header>
 <p id="album-status" role="status"></p>
-<div class="album-toolbar"><button id="open-pack">Abrir sobre · 3 láminas</button><button id="buy-card">Comprar lámina · 3.000 pts</button><button id="craft-card">30 ADN → especial nueva</button><label>Mostrar <select id="album-filter"><option value="all">Todas</option><option value="owned">Conseguidas</option><option value="missing">Faltantes</option></select></label></div>
-<p style="max-width:1000px;margin:auto;color:#c6b8ca">Ganas un sobre de 3 láminas (con una rara o mejor) la primera vez que completas cada edificio. Los puntos de cada partida se guardan en tu monedero: con 3.000 puntos compras una lámina sorpresa (puede salir repetida). Las repetidas valen 10 ADN. La colección se guarda en este navegador. 40 láminas disponibles; los números 38–40 están reservados.</p>
+<div class="album-toolbar"><button id="open-pack" hidden>Abrir sobre guardado</button><button id="buy-pack">Comprar sobre · 3 láminas · 9.000 moco puntos</button><button id="buy-card">Comprar lámina · 3.000 moco puntos</button><button id="craft-card">30 ADN → especial nueva</button><button id="album-to-up">Potenciar la mano (ADN)</button><label>Mostrar <select id="album-filter"><option value="all">Todas</option><option value="owned">Conseguidas</option><option value="missing">Faltantes</option></select></label></div>
+<p style="max-width:1000px;margin:auto;color:#c6b8ca">Cada edificio superado regala un sobre de 3 láminas (con una rara o mejor), que se abre al tiro. Los puntos de cada partida se guardan como moco puntos: un sobre de 3 láminas cuesta 9.000 y una lámina suelta 3.000 (pueden salir repetidas). Las repetidas valen 10 ADN; el ADN también se gana jugando y sirve para potenciar la mano. La colección se guarda en este navegador. 40 láminas disponibles; los números 38–40 están reservados.</p>
 <details id="backup"><summary>Respaldo del avance</summary><p>Guarda un código con tu colección, monedero, edificios abiertos y récord. Sirve para pasar tu avance a otro teléfono o navegador, o recuperarlo si se borran los datos.</p><div class="bk-row"><button type="button" id="bk-copy">Copiar código</button><button type="button" id="bk-download">Descargar archivo</button></div><textarea id="bk-out" rows="3" readonly hidden aria-label="Código de respaldo"></textarea><p>Para cargar un respaldo, pega el código o abre el archivo:</p><textarea id="bk-input" rows="3" placeholder="Pega aquí tu código MANO1…" aria-label="Código de respaldo para cargar"></textarea><div class="bk-row"><button type="button" id="bk-check">Revisar código</button><label class="bk-file">Abrir archivo<input type="file" id="bk-file" accept=".txt,text/plain"></label></div><p id="bk-msg" role="status"></p><button type="button" id="bk-apply" hidden>Reemplazar mi avance con este respaldo</button></details>
 <div id="pack-result" aria-live="polite"></div><div id="album-grid"></div>
 </section>
+<section id="upgrade-panel" role="dialog" aria-modal="true" aria-labelledby="up-title" hidden><header class="album-head"><div><small>LABORATORIO MUTANTE</small><h2 id="up-title">Potenciar la mano</h2></div><button class="album-close" id="up-close">Volver</button></header><p id="up-status" role="status"></p><div id="up-grid"></div><p class="up-note">Ganas ADN en cada partida (1 por cada 2 bichos y 10 extra al superar un edificio) y canjeando láminas repetidas en el álbum.</p></section>
 <section id="pack-open" role="dialog" aria-modal="true" aria-label="Abriendo sobre" hidden><h2 class="po-title"></h2><div class="po-stage"><div class="po-flash"></div><button type="button" class="po-pack" aria-label="Abrir el sobre"><span class="po-top"></span><span class="po-body"><img src="assets/logo-oficial.webp" alt=""><b>SOBRE MUTANTE</b><small>3 LÁMINAS</small></span></button><div class="po-cards"></div></div><p class="po-hint" role="status"></p><button type="button" class="po-done primary">¡GENIAL!</button></section>
 <section id="card-view" role="dialog" aria-modal="true" aria-label="Lámina ampliada" hidden><button class="album-close" id="card-close">Volver al álbum</button><img id="card-image" alt=""><p id="card-detail"></p><div id="card-actions"></div></section>
 <script src="level-hazards.js"></script><script src="game.js"></script><script src="album.js"></script>

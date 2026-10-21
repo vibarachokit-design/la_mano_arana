@@ -18,8 +18,9 @@ Incluye un álbum de 40 láminas coleccionables.
 ## Progreso
 
 - Los edificios se desbloquean de a uno al ganar el anterior.
-- Sobres: uno de bienvenida y uno especial de 3 láminas (con una rara o mejor) la primera vez que completas cada edificio. Se abren con animación en el álbum.
-- Los puntos de cada partida van a un monedero: cada lámina sorpresa adicional cuesta 3.000 puntos.
+- Cada edificio superado por primera vez regala un sobre de 3 láminas (con una rara o mejor) que se abre al tiro, con animación.
+- Los puntos de cada partida se guardan como moco puntos: un sobre de 3 láminas cuesta 9.000 y una lámina suelta 3.000.
+- ADN: se gana jugando (1 por cada 2 bichos, +10 al superar un edificio) y canjeando repetidas. En POTENCIAR se usa para mejorar la mano: escudo de telaraña, vida extra, imán de bichos y mutación más larga.
 - Cada edificio es más difícil que el anterior (más peligros, más rápidos y con menos aviso).
 - El avance se guarda en el navegador. En el álbum, "Respaldo del avance" permite copiar un código o descargar un archivo para recuperarlo o pasarlo a otro dispositivo.
 - Para probar todos los edificios sin jugar: agrega `?desbloquear` al final de la dirección.

@@ -60,6 +60,21 @@ const TUNING = [null,
   {speed:1.12, spawn:0.56, warn:.80},
   {speed:1.16, spawn:0.62, warn:.75}];
 const tune = () => TUNING[building] || TUNING[1];
+
+/* Mejoras de la mano que se compran con ADN (menú POTENCIAR). Se aplican al empezar cada partida. */
+const UPGRADES = {
+  shield:  {name:'Escudo de telaraña', icon:'beetle',  max:3, cost:[20,40,70],
+            desc:l => 'Dura ' + (2.2 + .5*l).toFixed(1).replace('.', ',') + ' s y se recarga en ' + (6 - .6*l).toFixed(1).replace('.', ',') + ' s'},
+  life:    {name:'Vida extra',         icon:'moth',    max:2, cost:[40,80],
+            desc:l => 'Empiezas con ' + (3 + l) + ' vidas'},
+  magnet:  {name:'Imán de bichos',     icon:'firefly', max:3, cost:[20,40,70],
+            desc:l => l ? 'Atrae bichos de premio a ' + [0,80,120,160][l] + ' px' : 'Sin imán: solo atrapas lo que tocas'},
+  mutation:{name:'Mutación más larga', icon:'hand-6',  max:3, cost:[20,40,70],
+            desc:l => 'Dura ' + (7 + 2*l) + ' s · se activa con ' + (l >= 2 ? 4 : 5) + ' luces'}
+};
+let UP = {shield:0, life:0, magnet:0, mutation:0};
+const upShield = () => 2.2 + .5*UP.shield, upCool = () => 6 - .6*UP.shield, maxLives = () => 3 + UP.life,
+      magnetR = () => [0,80,120,160][UP.magnet], mutDur = () => 7 + 2*UP.mutation, lightsNeed = () => UP.mutation >= 2 ? 4 : 5;
 const baseSpeed = () => (155 + floor*15) * tune().speed;
 const BUILDINGS = ['Laboratorio del profesor','Alcantarillas Mutantes','Invernadero Carnívoro','Museo de los Bichos','Fábrica Tóxica','Observatorio Chiflado'];
 const BUILDING_ZONES = [null,['DESAGÜES','TUBERÍAS','SALA DE BOMBAS','CISTERNA','ÁTICO'],['SEMILLERO','RAÍCES','INVERNADERO','ENREDADERAS','ÁTICO BOTÁNICO'],['DEPÓSITO','INSECTOS','FÓSILES','BIBLIOTECA','ÁTICO DEL MUSEO'],['CALDERAS','MAQUINARIA','CUBAS TÓXICAS','SALA ELÉCTRICA','ÁTICO INDUSTRIAL'],['LABORATORIO CÓSMICO','ENGRANAJES','METEORITOS','CARTAS CELESTES','OBSERVATORIO']];
@@ -198,7 +213,7 @@ function hud(){
   $('#score').textContent = floor + ' / 10';
   $('#building-number').textContent = building + ' / 6';
   $('#points').textContent = score;
-  $('#dna').textContent = light + ' / 5';
+  $('#dna').textContent = light + ' / ' + lightsNeed();
   $('#lives').textContent = lives > 0 ? '♥ '.repeat(lives) : '—';
   $('#bar').style.width = Math.min(100, height/10) + '%';
   const w = $('#web'); w.textContent = cool > 0 ? 'RECARGA ' + Math.ceil(cool) + 's' : 'TELARAÑA'; w.classList.toggle('cooling', cool > 0);
@@ -213,18 +228,19 @@ function start(){
   if(window.albumOpen || !ready || state === 'play' || state === 'paused' || state === 'ending') return;
   building = Math.max(1,Math.min(unlocked,Number($('#building-select').value)||1));
   window.mutantAlbum?.newRun();
+  UP = Object.assign({shield:0, life:0, magnet:0, mutation:0}, window.mutantAlbum?.upgrades());
   selectMusic(building);
   setState('play');
   x = target = 240; t = height = light = total = inv = shield = cool = mutation = ending = 0;
   score = combo = maxCombo = shake = flash = alarm = happy = zone = prevZone = zoneFade = 0;
-  try{ track.currentTime = 0 }catch{} waveTimer = 8; spawn = 1.3; lives = 3; floor = 1;
+  try{ track.currentTime = 0 }catch{} waveTimer = 8; spawn = 1.3; lives = maxLives(); floor = 1;
   objects = []; parts = []; floaters = []; keys = {};
   $('#overlay').style.display = 'none'; $('#pause').textContent = 'Ⅱ'; $('#toast').textContent = '';
   hud(); sfx.start(); startMusic(); toast('EDIFICIO '+building+' · ¡A trepar!');
 }
 $('#start').onclick = start;
 
-function web(){ if(state==='play' && cool<=0){ shield = 2.2; cool = 6; sfx.web(); burst(x, HAND_Y, '#bdefff', 14, 160) } }
+function web(){ if(state==='play' && cool<=0){ shield = upShield(); cool = upCool(); sfx.web(); burst(x, HAND_Y, '#bdefff', 14, 160) } }
 $('#web').onpointerdown = e => { e.preventDefault(); web() };
 
 function toggleSound(){
@@ -267,24 +283,27 @@ c.onpointermove = e => { if(drag) move(e) };
 c.onpointerup = c.onpointercancel = () => drag = false;
 
 const bichos = n => n + (n === 1 ? ' bicho' : ' bichos');
-const walletLine = w => w == null ? '' : '<br><span style="font-size:14px;color:#d9f47c">Monedero: ' + w + ' pts · cada lámina cuesta 3.000</span>';
+const fmt = n => Number(n).toLocaleString('es-CL');
+const walletLine = (w, dna) => w == null ? '' : '<br><span style="font-size:14px;color:#d9f47c">Monedero: ' + fmt(w) + ' moco puntos · +' + dna + ' ADN</span>';
 function end(win=false){
   setState(win ? 'win' : 'over'); stopMusic();
   const packWon = win && window.mutantAlbum?.win();
   if(win) score += lives*500;
   const wallet = window.mutantAlbum?.addPoints(score);
+  const dnaGain = Math.floor(total/2) + (win ? 10 : 0); // ADN para potenciar la mano
+  window.mutantAlbum?.addDna(dnaGain);
   best = Math.max(best, Math.floor(height)); bestScore = Math.max(bestScore, score);
   try{ localStorage.setItem('mano-best-v2', best); localStorage.setItem('mano-best-score-v3', bestScore) }catch{}
   $('#overlay').style.display = 'flex';
   const h2 = $('#overlay h2'); h2.style.display = 'block';
   h2.innerHTML = win ? '¡LA MANO ARAÑA<br>ATACA DE NUEVO!' : '¡TE ATRAPARON!';
   $('#overlay p').innerHTML = win
-    ? '¡Edificio '+building+' completado! ¡El profesor huyó por la ventana!<br>' + bichos(total) + ' · combo máx. x' + Math.max(1, maxCombo) + ' · bono vidas +' + lives*500 + '<br><b style="font-size:22px">' + score + ' PUNTOS</b>' + walletLine(wallet)
-    : 'Llegaste al piso ' + floor + ' de 10 · ' + bichos(total) + '.<br><b style="font-size:22px">' + score + ' PUNTOS</b>' + walletLine(wallet) + '<br>¡El profesor sigue durmiendo!';
+    ? '¡Edificio '+building+' completado! ¡El profesor huyó por la ventana!<br>' + bichos(total) + ' · combo máx. x' + Math.max(1, maxCombo) + ' · bono vidas +' + lives*500 + '<br><b style="font-size:22px">' + score + ' PUNTOS</b>' + walletLine(wallet, dnaGain)
+    : 'Llegaste al piso ' + floor + ' de 10 · ' + bichos(total) + '.<br><b style="font-size:22px">' + score + ' PUNTOS</b>' + walletLine(wallet, dnaGain) + '<br>¡El profesor sigue durmiendo!';
   let opened = '';
   if(win && building === unlocked && unlocked < 6){ unlocked++; saveUnlocked(); opened = '<br><b style="color:#c4fa50">¡NUEVO! Edificio ' + unlocked + ' desbloqueado: ' + BUILDINGS[unlocked-1] + '</b>' }
   if(win && building === 6) opened = '<br><b style="color:#c4fa50">¡Completaste los 6 edificios!</b>';
-  if(packWon) opened += '<br><b style="color:#ffd86b">¡Ganaste un sobre de 3 láminas! Ábrelo en el ÁLBUM.</b>';
+  if(packWon) opened += '<br><b style="color:#ffd86b">¡Sobre de 3 láminas ganado! Ya está en tu ÁLBUM.</b>';
   $('#overlay p').innerHTML += opened;
   renderBuildings();
   if(win && building<6) $('#building-select').value=String(building+1);
@@ -292,6 +311,7 @@ function end(win=false){
   $('#record').textContent = recordLine();
   if(!win) sfx.lose();
   hud();
+  if(packWon) window.mutantAlbum?.showWinPack(); // el sobre del edificio se abre al tiro
 }
 
 /* ============================== DIBUJO ============================== */
@@ -616,8 +636,8 @@ function collect(o){
   sfx.pickup(); floater(o.x, HAND_Y-60, '+'+pts);
   if(combo % 5 === 0 && mult() <= 5) toast('¡COMBO x'+mult()+'!');
   if(o.type==='beetle'){ shield = Math.max(shield,5); toast('¡ESCUDO LUMINOSO!') }
-  else if(o.type==='moth'){ if(lives < 3){ lives++; toast('¡VIDA RECUPERADA!'); sfx.heal() } else { score += 50; floater(o.x, HAND_Y-90, '+50 BONO', '#8dff8a') } }
-  else { light++; if(light >= 5){ light = 0; mutation = 7; toast('¡MUTACIÓN ACTIVADA!'); sfx.mutation(); shake = Math.max(shake,6) } }
+  else if(o.type==='moth'){ if(lives < maxLives()){ lives++; toast('¡VIDA RECUPERADA!'); sfx.heal() } else { score += 50; floater(o.x, HAND_Y-90, '+50 BONO', '#8dff8a') } }
+  else { light++; if(light >= lightsNeed()){ light = 0; mutation = mutDur(); toast('¡MUTACIÓN ACTIVADA!'); sfx.mutation(); shake = Math.max(shake,6) } }
 }
 function damage(){
   lives--; inv = 1.8; combo = 0; shake = 14; flash = .35;
@@ -689,6 +709,9 @@ function step(dt){
       if(mutation > 0 && o.pick){ // imán mutante
         const dx = x - o.x, dy = HAND_Y - o.y, d = Math.hypot(dx,dy);
         if(d < 200 && d > 1){ o.x += dx/d*300*dt; o.y += dy/d*300*dt }
+      }else if(o.pick && magnetR() > 0){ // imán comprado con ADN (más suave que el mutante)
+        const dx = x - o.x, dy = HAND_Y - o.y, d = Math.hypot(dx,dy);
+        if(d < magnetR() && d > 1){ o.x += dx/d*170*dt; o.y += dy/d*170*dt }
       }
       if(hits(o)){
         o.y = 1000;
