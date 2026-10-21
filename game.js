@@ -1,6 +1,7 @@
 'use strict';
 /* ============================================================
-   LA MANO ARAÑA MUTANTE · v2
+   LA MANO ARAÑA MUTANTE · v5 (versión 11)
+   Historial resumido en LEEME.txt.
    Cambios principales respecto a v1:
    - Puntaje, combos (multiplicador) y récord de puntos
    - Peligros nuevos: pisotón con sombra de aviso, matamoscas que persigue,
@@ -21,7 +22,7 @@ c.width = W; c.height = H;
 
 const ASSET_BASE = window.ASSET_BASE || 'assets/';
 const images = {};
-const names = ['cover','background-0','background-1','background-2','background-3','background-4','spray','swatter','shoe','fly','firefly','beetle','moth',
+const names = [...Array.from({length:60},(_,i)=>'hazard-'+(2+Math.floor(i/12))+'-'+Math.floor(i%12/2)+'-'+(i%2)), ...Array.from({length:25},(_,i)=>'building-'+(2+Math.floor(i/5))+'-'+(i%5)), 'cover','background-0','background-1','background-2','background-3','background-4','spray','swatter','shoe','fly','firefly','beetle','moth',
   'bed','bed-sleeping','window','prof-crouch','prof-launch','prof-dive','prof-nightcap',...Array.from({length:4},(_,i)=>'prof-run-'+i),...Array.from({length:8},(_,i)=>'hand-'+i)];
 
 // Tamaños de dibujo y cajas de colisión (medio ancho, medio alto) por tipo
@@ -39,6 +40,10 @@ const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const rand = arr => arr[Math.floor(Math.random()*arr.length)];
 const mult = () => 1 + Math.min(4, Math.floor(combo/5));
 const baseSpeed = () => 155 + floor*15;
+let building = 1;
+const BUILDINGS = ['Laboratorio del profesor','Alcantarillas Mutantes','Invernadero Carnívoro','Museo de los Bichos','Fábrica Tóxica','Observatorio Chiflado'];
+const BUILDING_ZONES = [null,['DESAGÜES','TUBERÍAS','SALA DE BOMBAS','CISTERNA','ÁTICO'],['SEMILLERO','RAÍCES','INVERNADERO','ENREDADERAS','ÁTICO BOTÁNICO'],['DEPÓSITO','INSECTOS','FÓSILES','BIBLIOTECA','ÁTICO DEL MUSEO'],['CALDERAS','MAQUINARIA','CUBAS TÓXICAS','SALA ELÉCTRICA','ÁTICO INDUSTRIAL'],['LABORATORIO CÓSMICO','ENGRANAJES','METEORITOS','CARTAS CELESTES','OBSERVATORIO']];
+const zoneTitle = z => building===1 ? ZONES[z] : BUILDING_ZONES[building-1][z];
 const ZONES = ['LABORATORIO','TUBERÍAS','COCINA','BIBLIOTECA','DORMITORIO'];
 const zoneFor = h => clamp(Math.floor(h/200), 0, 4);
 
@@ -100,11 +105,19 @@ const BASS = [110,0,110,0,130.81,0,123.47,98];
 const ARP_NOTES = [440,523.25,587.33,659.25,783.99,880,1046.5];
 const ARP = [0,2,4,2,1,3,5,3,0,2,4,6,5,3,2,1];
 let musicOn=false, nextNote=0, stepIdx=0, musicTimer=0;
-// Música principal: archivo mp3 en loop (si falla, se usa la música procedural)
-const track = new Audio(ASSET_BASE + 'musica.mp3');
+// Música principal: un mp3 en loop por edificio (si falla, se usa la música procedural).
+// Edificios 5 y 6 usan temporalmente las canciones de los niveles 1 y 2.
+const MUSIC = [null, 'musica.mp3', 'musica-2.mp3', 'musica-3.mp3', 'musica-4.mp3', 'musica.mp3', 'musica-2.mp3'];
+const track = new Audio(ASSET_BASE + MUSIC[1]);
 track.loop = true; track.preload = 'auto'; track.volume = .55;
-let trackOk = true, fadeTimer = 0;
+let trackOk = true, fadeTimer = 0, trackFile = MUSIC[1];
 track.onerror = () => { trackOk = false };
+function selectMusic(b){
+  const file = MUSIC[b] || MUSIC[1];
+  if(file === trackFile) return;
+  clearInterval(fadeTimer); track.pause();
+  trackFile = file; trackOk = true; track.src = ASSET_BASE + file; track.load();
+}
 function musicRate(){ try{ track.preservesPitch = true; track.playbackRate = 1 + (floor-1)*.012 + (alarm > 0 ? .04 : 0) }catch{} }
 function fadeOutMusic(ms=1500){
   clearInterval(fadeTimer); const v0 = track.volume, steps = 20; let k = 0;
@@ -140,9 +153,10 @@ function scheduleMusic(){
 
 /* ============================== UI ============================== */
 function toast(msg){ clearTimeout(toastTimer); $('#toast').textContent = msg; toastTimer = setTimeout(()=>$('#toast').textContent='', 1900) }
-function setState(s){ state = s; $('#cabinet').classList.toggle('playing', s==='play' || s==='paused') }
+function setState(s){ state = s; $('#cabinet').classList.toggle('title-screen', s==='loading'||s==='menu'); $('#cabinet').classList.toggle('playing', s==='play' || s==='paused'); $('#cabinet').classList.toggle('result-screen', s==='over'||s==='win') }
 function hud(){
   $('#score').textContent = floor + ' / 10';
+  $('#building-number').textContent = building + ' / 6';
   $('#points').textContent = score;
   $('#dna').textContent = light + ' / 5';
   $('#lives').textContent = lives > 0 ? '♥ '.repeat(lives) : '—';
@@ -156,15 +170,17 @@ function burst(px, py, col, n=18, power=240){
 }
 
 function start(){
-  if(!ready || state === 'play' || state === 'paused' || state === 'ending') return;
+  if(window.albumOpen || !ready || state === 'play' || state === 'paused' || state === 'ending') return;
+  building = Math.max(1,Math.min(6,Number($('#building-select').value)||1));
+  window.mutantAlbum?.newRun();
+  selectMusic(building);
   setState('play');
   x = target = 240; t = height = light = total = inv = shield = cool = mutation = ending = 0;
   score = combo = maxCombo = shake = flash = alarm = happy = zone = prevZone = zoneFade = 0;
   try{ track.currentTime = 0 }catch{} waveTimer = 8; spawn = 1.3; lives = 3; floor = 1;
   objects = []; parts = []; floaters = []; keys = {};
   $('#overlay').style.display = 'none'; $('#pause').textContent = 'Ⅱ'; $('#toast').textContent = '';
-  if(window.Album && Album.skin() === 'azul') shield = 3;
-  hud(); sfx.start(); startMusic(); toast('PISO 1 · ¡A trepar!');
+  hud(); sfx.start(); startMusic(); toast('EDIFICIO '+building+' · ¡A trepar!');
 }
 $('#start').onclick = start;
 
@@ -174,12 +190,13 @@ $('#web').onpointerdown = e => { e.preventDefault(); web() };
 function toggleSound(){
   muted = !muted;
   $('#sound').textContent = 'SONIDO: ' + (muted ? 'OFF' : 'ON');
-  $('#sound-mobile').textContent = '♪ ' + (muted ? 'OFF' : 'ON');
+  $('#sound-mobile').textContent = $('#sound-menu').textContent = '♪ ' + (muted ? 'OFF' : 'ON');
   if(muted) stopMusic(); else { tone(500); if(state==='play') startMusic() }
 }
-$('#sound').onclick = $('#sound-mobile').onclick = toggleSound;
+$('#sound').onclick = $('#sound-mobile').onclick = $('#sound-menu').onclick = toggleSound;
 
 function pause(){
+  if(window.albumOpen) return;
   if(state==='play'){ setState('paused'); stopMusic(); $('#pause').textContent='▶'; keys={} }
   else if(state==='paused'){ setState('play'); startMusic(); $('#pause').textContent='Ⅱ'; $('#toast').textContent='' }
 }
@@ -189,7 +206,6 @@ onblur = () => { keys = {}; if(state==='play') pause() };
 
 function skipEnding(){ if(state==='ending' && ending > 1.2 && ending < 7.6) ending = 7.6 }
 onkeydown = e => {
-  if(document.querySelector('#album.show,#al-open.show,#al-detail.show')){ if(e.code==='Escape'){ const d=$('#al-detail.show'), o=$('#al-open.show'); if(d) d.classList.remove('show'); else if(!o && window.Album) Album.close() } return }
   if(['ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
   keys[e.code] = true;
   if((e.code==='Enter' || e.code==='Space') && ['menu','over','win'].includes(state) && !e.repeat){ e.preventDefault(); start(); return }
@@ -210,20 +226,20 @@ c.onpointerdown = e => { if(state==='ending'){ skipEnding(); return } if(state!=
 c.onpointermove = e => { if(drag) move(e) };
 c.onpointerup = c.onpointercancel = () => drag = false;
 
+const bichos = n => n + (n === 1 ? ' bicho' : ' bichos');
 function end(win=false){
   setState(win ? 'win' : 'over'); stopMusic();
-  if(win) score += lives*500;
+  if(win){ score += lives*500; window.mutantAlbum?.win(); }
   best = Math.max(best, Math.floor(height)); bestScore = Math.max(bestScore, score);
   try{ localStorage.setItem('mano-best-v2', best); localStorage.setItem('mano-best-score-v3', bestScore) }catch{}
   $('#overlay').style.display = 'flex';
   const h2 = $('#overlay h2'); h2.style.display = 'block';
   h2.innerHTML = win ? '¡LA MANO ARAÑA<br>ATACA DE NUEVO!' : '¡TE ATRAPARON!';
   $('#overlay p').innerHTML = win
-    ? '¡Nivel 1 completado! ¡El profesor huyó por la ventana!<br>' + total + ' bichos · combo máx. x' + maxCombo + ' · bono vidas +' + lives*500 + '<br><b style="font-size:22px">' + score + ' PUNTOS</b>'
-    : 'Llegaste al piso ' + floor + ' de 10 · ' + total + ' bichos.<br><b style="font-size:22px">' + score + ' PUNTOS</b><br>¡El profesor sigue durmiendo!';
-  // Recompensa para el álbum
-  if(window.Album){ const m = Album.reward(floor, total, win); $('#overlay p').innerHTML += '<br><span style="color:#d4ff7a;font-weight:900">+' + m + ' MOCO para sobres del álbum</span>' }
-  $('#start').textContent = win ? 'JUGAR OTRA VEZ' : 'VOLVER A INTENTAR';
+    ? '¡Edificio '+building+' completado! ¡El profesor huyó por la ventana!<br>' + bichos(total) + ' · combo máx. x' + Math.max(1, maxCombo) + ' · bono vidas +' + lives*500 + '<br><b style="font-size:22px">' + score + ' PUNTOS</b>'
+    : 'Llegaste al piso ' + floor + ' de 10 · ' + bichos(total) + '.<br><b style="font-size:22px">' + score + ' PUNTOS</b><br>¡El profesor sigue durmiendo!';
+  if(win && building<6) $('#building-select').value=String(building+1);
+  $('#start').textContent = win ? (building<6 ? 'SIGUIENTE EDIFICIO' : 'VOLVER A JUGAR') : 'VOLVER A INTENTAR';
   $('#record').textContent = 'MEJOR AVANCE · ' + Math.min(100, Math.floor(best/10)) + ' % · RÉCORD ' + bestScore + ' PTS';
   if(!win) sfx.lose();
   hud();
@@ -237,17 +253,14 @@ function image(name, px, py, w, h, angle=0){
   g.drawImage(im, -iw/2, -ih/2, iw, ih); g.restore();
 }
 function drawZone(z, alpha){
-  const im = images['background-'+z]; if(!im || !im.width) return;
+  const im = images[building===1 ? 'background-'+z : 'building-'+building+'-'+z];
+  if(!im || !im.width) return;
   const bh = Math.round(im.height*W/im.width);
-  const scroll = state==='ending' || state==='win' ? bh - H : (height*1.4) % (2*bh);
-  g.globalAlpha = alpha;
-  // Mosaico en espejo: cada segunda copia va invertida para que no se note la costura
-  for(let k=0, y=scroll - 2*bh; y < H; k++, y += bh){
-    if(y + bh < 0) continue;
-    if(k % 2){ g.save(); g.translate(0, y + bh); g.scale(1,-1); g.drawImage(im, 0, 0, W, bh); g.restore() }
-    else g.drawImage(im, 0, y, W, bh);
-  }
-  g.globalAlpha = 1;
+  const scroll = state==='ending' || state==='win' ? bh-H : (height*1.4)%bh;
+  g.globalAlpha=alpha;
+  // Todas las copias permanecen derechas; nunca se invierte el eje vertical.
+  for(let y=scroll-bh;y<H;y+=bh) g.drawImage(im,0,y,W,bh);
+  g.globalAlpha=1;
 }
 function background(){
   drawZone(zone, 1);
@@ -414,19 +427,20 @@ function drawFinale(){
     image('hand-'+(k < 1 ? 4 : 7), hx, hy, k < 1 ? 82 : 110, k < 1 ? 82 : 110);
   }
 
+  if(state==='win') return; // el resultado ya lo muestra la capa HTML
   if(e > 7.6){
     const k = ease(phase(e, 7.6, 8)); g.save(); g.translate(240, 205); g.scale(k, k);
     g.fillStyle='#14210d'; g.font='900 26px system-ui'; g.textAlign='center'; g.fillText('¡LA MANO ARAÑA',2,-13); g.fillText('ATACA DE NUEVO!',2,19);
     g.fillStyle='#cbe750'; g.fillText('¡LA MANO ARAÑA',0,-15); g.fillText('ATACA DE NUEVO!',0,17); g.restore();
   }
   g.fillStyle='#f1e3bf'; g.font='bold 18px system-ui'; g.textAlign='center';
-  g.fillText(e<3 ? 'Chuuut… el profesor duerme.' : e<4.4 ? '¡Una mano en mi cara!' : e<7.4 ? '¡Corre, profesor, corre!' : '¡Nivel 1 completado!', 240, 120);
+  g.fillText(e<3 ? 'Chuuut… el profesor duerme.' : e<4.4 ? '¡Una mano en mi cara!' : e<7.4 ? '¡Corre, profesor, corre!' : '¡Edificio '+building+' completado!', 240, 120);
   if(state==='ending' && e > 1.2 && e < 7.6){ g.globalAlpha = .55 + Math.sin(t*4)*.25; g.font='13px system-ui'; g.fillText('Toca o pulsa Espacio para saltar', 240, 790); g.globalAlpha = 1 }
 }
 
 function drawWarnings(){
   for(const o of objects){
-    if(o.pick) continue;
+    if(o.pick || o.mutant) continue;
     // Sombra del pisotón: crece mientras se acerca el golpe
     if(o.stomp){
       const k = o.delay > 0 ? 1 - o.delay/o.delayMax : 1;
@@ -461,6 +475,7 @@ function draw(){
   drawWarnings();
   for(const o of objects){
     if(o.stomp && o.delay > 0) continue;
+    if(o.mutant){drawMutantHazard(o);continue;}
     const wobble = Math.sin(t*6 + o.phase), [w,h] = SIZE[o.type];
     if(o.pick){ // halo de los bichos
       g.fillStyle = o.type==='beetle' ? '#65d9ff33' : o.type==='moth' ? '#8dff8a33' : '#f4ff6a33';
@@ -479,9 +494,7 @@ function draw(){
   }
   const hs = mutation > 0 ? 150 : 135;
   if(inv <= 0 || Math.floor(t*14) % 2 === 0)
-    { const hn = 'hand-'+(mutation>0 ? 6 : inv>0 ? 5 : happy>0 ? 4 : Math.floor(t*8)%4), im = images[hn];
-      if(window.Album && Album.skin() && im && im.width) Album.drawHand(g, im, hn, x, HAND_Y, hs, hs, Math.sin(t*8)*.025 + tilt);
-      else image(hn, x, HAND_Y, hs, hs, Math.sin(t*8)*.025 + tilt) }
+    image('hand-'+(mutation>0 ? 6 : inv>0 ? 5 : happy>0 ? 4 : Math.floor(t*8)%4), x, HAND_Y, hs, hs, Math.sin(t*8)*.025 + tilt);
 
   if(mult() > 1){
     g.font = '900 18px system-ui'; g.textAlign = 'center'; g.fillStyle = '#14210d';
@@ -519,6 +532,7 @@ function spawnPickup(px){
   objects.push({x: px ?? 75 + Math.random()*330, y:-100, type, pick:true, phase:Math.random()*6, vy:baseSpeed()});
 }
 function spawnHazard(){
+  if(building>1){spawnMutantHazard();return;}
   const types = floor<3 ? ['shoe','fly'] : floor<5 ? ['shoe','fly','swatter'] : ['shoe','fly','swatter','spray'];
   const type = rand(types);
   if(type==='shoe' && floor >= 4 && Math.random() < .35){ // pisotón dirigido a la mano
@@ -533,11 +547,13 @@ function spawnWave(){ // fila de peligros con un hueco que tiene un bicho de pre
   const cols = [75,157,240,322,405], gap = Math.floor(Math.random()*cols.length);
   cols.forEach((cx,i)=>{
     if(i===gap) spawnPickup(cx);
+    else if(building>1) spawnMutantHazard(cx,true);
     else objects.push({x:cx, y:-100, type: rand(['shoe','fly']), pick:false, phase:Math.random()*6, vy:baseSpeed()*.85, wave:true});
   });
   toast('¡OLEADA! Busca el hueco');
 }
 function hits(o){
+  if(o.mutant)return hitsMutant(o);
   const [hw,hh] = HITBOX[o.type], k = mutation > 0 && o.pick ? 1.15 : 1;
   if(Math.abs(o.x - x) < hw*k && Math.abs(o.y - HAND_Y) < hh*k) return true;
   if(o.type==='spray'){ const cx = o.x + Math.sin(t*3)*16, cy = o.y + 50; if(Math.abs(cx-x) < 34 && Math.abs(cy-HAND_Y) < 32) return true }
@@ -587,12 +603,13 @@ function step(dt){
     const next = Math.min(10, 1 + Math.floor(height/100));
     if(next !== floor){
       floor = next; score += 100; sfx.floorUp(); floater(240, 370, 'PISO '+floor+' · +100', '#caed55', 24);
-      if(floor === 5 || floor === 9){ alarm = 6; sfx.alarm(); toast(floor===9 ? '¡DORMITORIO! El profesor está cerca…' : '¡ALARMA EN LA COCINA!') }
+      if(floor === 5 || floor === 9){ alarm = 6; sfx.alarm(); toast(floor===9 ? '¡ÚLTIMOS PISOS! El profesor está cerca…' : '¡ALARMA EN EL EDIFICIO!') }
       else toast('PISO '+floor);
     }
     const z = zoneFor(height);
-    if(z !== zone){ prevZone = zone; zone = z; zoneFade = 1; if(zone !== 2 && zone !== 4){ const zn = ZONES[zone]; setTimeout(() => { if(state==='play') toast('ZONA: ' + zn) }, 900) } }
+    if(z !== zone){ prevZone = zone; zone = z; zoneFade = 1; if(zone !== 2 && zone !== 4){ const zn = zoneTitle(zone); setTimeout(() => { if(state==='play') toast('ZONA: ' + zn) }, 900) } }
     zoneFade = Math.max(0, zoneFade - dt*.8);
+    window.mutantAlbum?.floor(floor);
     musicRate();
     if(height >= 1000){
       setState('ending'); ending = 0; stopMusic(true); zone = 4; zoneFade = 0; objects = []; $('#toast').textContent = ''; hud(); return;
@@ -602,9 +619,6 @@ function step(dt){
     if(keys.ArrowRight || keys.KeyD || keys.right) target += dt*380;
     target = clamp(target, 65, 415);
     const px = x; x += (target - x)*Math.min(1, dt*16);
-    if(window.Album && Album.skin() === 'brillos' && Math.random() < dt*30)
-      parts.push({x:x + (Math.random()-.5)*60, y:HAND_Y + 30 + Math.random()*20, vx:(Math.random()-.5)*40, vy:60+Math.random()*80, life:.6, max:.6,
-        col: ['#ff8ad8','#ffe96b','#7cf3ff','#ffffff'][Math.floor(Math.random()*4)], r:1.5+Math.random()*2.5});
     tilt += (clamp((x - px)/Math.max(dt,.001)/1500, -.25, .25) - tilt)*Math.min(1, dt*10);
     inv = Math.max(0, inv-dt); shield = Math.max(0, shield-dt); cool = Math.max(0, cool-dt);
     mutation = Math.max(0, mutation-dt); happy = Math.max(0, happy-dt); alarm = Math.max(0, alarm-dt);
@@ -618,7 +632,7 @@ function step(dt){
 
     for(const o of objects){
       if(o.stomp && o.delay > 0){ o.delay -= dt; if(o.delay <= 0) o.vy = 820; continue }
-      o.y += o.vy*dt;
+      if(o.mutant){updateMutantHazard(o,dt);}else o.y += o.vy*dt;
       if(o.type==='fly' || o.pick){ const amp = o.type==='fly' && floor >= 7 ? 95 : 45; o.x = clamp(o.x + Math.sin(t*3+o.phase)*dt*amp, 55, 425) }
       if(o.homing && o.y < HAND_Y - 120) o.x += Math.sign(x - o.x)*Math.min(Math.abs(x - o.x), 55*dt);
       if(mutation > 0 && o.pick){ // imán mutante

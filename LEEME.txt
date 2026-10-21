@@ -1,0 +1,72 @@
+LA MANO ARAÑA MUTANTE — ÁLBUM MUTANTE
+
+Descomprime la carpeta completa y abre index.html en un navegador.
+Mantén index.html, game.js, album.js y assets en la misma estructura.
+
+ÁLBUM: botón ÁLBUM en el juego. 40 láminas verticales individuales.
+Un sobre de bienvenida. En cada edificio, sobres la primera vez que llegas a los pisos 3, 5, 7, 9 y la primera vez que ganas (30 en total).
+Cada sobre contiene 3 láminas. El sobre de victoria garantiza una rara o superior.
+Se favorecen las faltantes, sin garantizar que todos los sobres sean nuevos.
+Abre una repetida y canjea una copia extra por 10 ADN. Conservas la última.
+Con 30 ADN consigues una rara, épica o legendaria que aún te falte.
+La colección y sobres se guardan en este navegador; no hay sincronización en línea.
+Al abrir el álbum durante la partida se pausa; al volver se reanuda.
+
+La música y el profesor dormido, corriendo y saltando por la ventana
+ya estaban presentes en la carpeta recibida y se conservan.
+
+Validación: sintaxis JS, pruebas de lógica de álbum y decodificación de las 40 imágenes.
+Pendiente: comprobación visual y auditiva en navegador real.
+
+VERSIÓN 06 — SEIS EDIFICIOS
+Cada edificio tiene 10 pisos y cinco zonas (una cada dos pisos).
+Elige edificio en la portada; al ganar se propone el siguiente.
+Fondos nuevos: alcantarillas, invernadero, museo, fábrica y observatorio.
+El desplazamiento repite los fondos derechos, sin invertir ninguna copia.
+Se reutilizan enemigos, mecánica, música y escena del profesor en los seis edificios.
+
+VERSIÓN 07 — PELIGROS MUTANTES
+30 enemigos y obstáculos propios de edificios 2 a 6, con 60 cuadros transparentes.
+Aviso de 0,95 segundos antes de atacar. En los primeros dos pisos se presentan enemigos;
+desde el tercero se suman obstáculos. Las oleadas conservan un hueco para esquivar.
+Hay persecución, embestidas, chorros, giros, barridos, trampas y atracción magnética.
+El escudo y la mutación protegen de daños; también anulan la atracción.
+Las nuevas láminas 18–37 y 41–43 ya están integradas al álbum.
+
+VERSIÓN 08 — ÁLBUM AMPLIADO
+40 láminas disponibles: 01–37 y 41–43. 38–40 reservadas, no sorteables.
+Se conservan copias, sobres y ADN de la colección anterior en el mismo navegador.
+Probabilidad por lámina ordinaria: común 58%, rara 30%, épica 9%, legendaria 3%.
+Dentro de cada rareza se favorecen las que faltan. Sobres de victoria mantienen
+una rara o superior garantizada. Canje: 30 ADN por una especial faltante.
+
+VERSIÓN 09 — PORTADA OFICIAL
+Portada nueva vertical con los seis edificios, la mano y el profesor.
+Logo oficial original transparente en assets/logo-oficial.png, superpuesto sin redibujarlo.
+Menú inferior ajustado y logo visible solo en la portada.
+
+VERSIÓN 10 — PERSONAJE ORIGINAL
+Portada corregida a partir de las referencias originales: mano levantada,
+ojos ovalados, verrugas, baba verde y patas de araña peludas separadas.
+Se conserva el PNG del logo oficial original como capa independiente.
+
+VERSIÓN 11 — AJUSTES DE REVISIÓN
+Portada: ÁLBUM y SONIDO pasan a una fila junto al botón de empezar; ya no tapan el logo.
+Los botones flotantes (álbum, sonido, pausa) solo se ven durante la partida.
+Victoria y derrota: el título y el resumen aparecen una sola vez, con fondo oscuro legible.
+Sobres: cada sobre de edificio se gana una sola vez (por edificio y piso, y por primera victoria).
+Repetir un edificio ya no regala sobres infinitos. El álbum muestra cuántos de los 30 llevas.
+Los sobres ya abiertos, las láminas y el ADN de versiones anteriores se conservan.
+Textos: "1 bicho" en singular, canje "30 ADN → especial nueva", panel lateral con los 6 edificios.
+Rendimiento: el álbum usa miniaturas (assets/thumbs, ~2,6 MB en total en vez de ~24 MB);
+la lámina grande se carga solo al tocarla. Logo mostrado en assets/logo-oficial.webp;
+el PNG original se conserva en assets como respaldo, sin modificar.
+
+VERSIÓN 12 — MÚSICA POR EDIFICIO
+Cada edificio tiene su propia canción en assets:
+  1 Laboratorio → musica.mp3        4 Museo → musica-4.mp3
+  2 Alcantarillas → musica-2.mp3    5 Fábrica → musica.mp3 (provisoria, la del nivel 1)
+  3 Invernadero → musica-3.mp3      6 Observatorio → musica-2.mp3 (provisoria, la del nivel 2)
+Para poner la música definitiva de los niveles 5 y 6, copia los archivos como
+assets/musica-5.mp3 y assets/musica-6.mp3 y cambia esas dos entradas en la lista MUSIC
+al inicio de game.js.

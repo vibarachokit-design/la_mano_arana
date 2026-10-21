@@ -9,7 +9,8 @@
 body{margin:0;background:#171c1c;color:#f3e5c6;font:16px system-ui;overflow:hidden}
 button{font:inherit;cursor:pointer;color:inherit}
 #app{height:100dvh;display:grid;grid-template-columns:1fr minmax(300px,480px) 1fr;gap:30px;max-width:1300px;margin:auto;padding:25px}
-aside{align-self:center;padding:20px}
+aside{align-self:center;padding:20px;max-height:100%;overflow:auto}
+#app{grid-template-rows:minmax(0,1fr)}
 h1{font-size:clamp(30px,4vw,58px);line-height:1;letter-spacing:-2px;margin:20px 0}
 h1 span{color:#bedb55}
 p{color:#9aaeb1;line-height:1.7}
@@ -46,7 +47,8 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
 #toast:empty{display:none}
 
 /* Fuera de la partida se ocultan HUD y controles */
-#cabinet:not(.playing) #hud,#cabinet:not(.playing) #progress,#cabinet:not(.playing) .controls,#cabinet:not(.playing) #pause{visibility:hidden}
+#cabinet:not(.playing) #hud,#cabinet:not(.playing) #progress,#cabinet:not(.playing) .controls,#cabinet:not(.playing) #pause,
+#cabinet:not(.playing) #album-launch,#cabinet:not(.playing) #sound-mobile{visibility:hidden}
 
 .card{border-top:1px solid #294047;padding:20px 0}
 .card b{display:block;margin:8px 0}
@@ -59,20 +61,61 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
   aside{display:none}
   #cabinet{width:min(100vw,60dvh);border-width:0;border-radius:0}
 }
+
+#album-launch{position:absolute;top:153px;right:12px;background:#452657;border:1px solid #dac684;border-radius:8px;padding:8px;z-index:3}
+#album-panel{position:fixed;inset:0;z-index:30;background:#171020;color:#f7edce;overflow:auto;padding:max(18px,env(safe-area-inset-top)) 16px 40px;overscroll-behavior:contain}
+#album-panel[hidden],#card-view[hidden]{display:none}
+.album-head{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1000px;margin:auto}
+.album-head h2{margin:8px 0;color:#d2ed65}.album-close{padding:12px;background:#392444;border:1px solid #baaa80;border-radius:10px}
+.album-toolbar{max-width:1000px;margin:18px auto;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.album-toolbar button{background:#523361;border:1px solid #9c7caa;border-radius:10px;padding:12px}
+.album-toolbar button:disabled{opacity:.45;cursor:default}
+#album-status,#pack-result{max-width:1000px;margin:14px auto;line-height:1.6}
+#album-grid,#pack-result{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;max-width:1000px;margin:20px auto}
+.sticker{padding:0;background:#2c1e37;border:1px solid #6f5680;border-radius:14px;overflow:hidden;text-align:left;position:relative}
+.sticker img{width:100%;aspect-ratio:2/3;object-fit:contain;display:block}.sticker.locked img{filter:grayscale(1) brightness(.34)}
+.sticker span{display:block;padding:8px;font-size:13px}.sticker b{position:absolute;right:7px;top:7px;background:#18121be8;padding:5px;border-radius:5px;color:#d9f47c}
+#card-view{position:fixed;inset:0;z-index:40;background:#09060df5;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:14px;gap:10px}
+#card-view img{display:block;max-height:76dvh;max-width:94vw;width:auto;object-fit:contain;border-radius:16px}
+#card-detail{max-width:540px;text-align:center;margin:0;line-height:1.5;color:#f4e5cd}
+#card-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}#card-actions button{padding:12px;border-radius:10px;background:#513064;border:1px solid #d6be7e}
+@media(prefers-reduced-motion:no-preference){#pack-result .sticker{animation:reveal .45s ease both}@keyframes reveal{from{opacity:0;transform:translateY(20px) rotateY(80deg)}to{opacity:1;transform:none}}}
+
+/* Fila de botones del menú: empezar, álbum y (en celular) sonido */
+.menu-row{display:flex;gap:10px;align-items:stretch;justify-content:center;flex-wrap:wrap}
+.secondary{background:#452657;border:1px solid #dac684;border-radius:12px;padding:10px 14px;font-weight:800;box-shadow:0 5px #24132e}
+.secondary:active{transform:translateY(3px);box-shadow:0 2px #24132e}
+#sound-menu{display:none}
+@media(max-width:850px){#sound-menu{display:block}}
+/* Pantalla de resultado: fondo más oscuro para que el texto no quede sobre la ventana */
+#cabinet.result-screen #overlay{justify-content:center;background:linear-gradient(#101511aa,#101511ee 30%,#101511f5)}
+#title-logo{display:none;position:absolute;z-index:2;top:3%;left:5%;width:90%;height:23%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 4px 8px #140b23)}
+#cabinet.title-screen #title-logo{display:block}
+#cabinet.title-screen #overlay{padding:10px 16px 15px;background:linear-gradient(transparent 56%,#10151166 68%,#101511ed)}
+#cabinet.title-screen #overlay>small:first-child{position:absolute;top:27%;left:10%;width:80%;font-size:10px;letter-spacing:1px;line-height:1.4}
+#cabinet.title-screen #overlay p{font-size:13px;line-height:1.35;margin:5px 0 8px}
+#cabinet.title-screen #overlay label{font-size:12px;margin:4px!important}
+#cabinet.title-screen #building-select{font-size:13px;padding:7px!important;margin:3px auto!important}
+#cabinet.title-screen #start{padding:12px 25px;font-size:15px}
+#cabinet.title-screen .secondary{padding:8px 12px;font-size:13px}
+#cabinet.title-screen #record{font-size:9px;letter-spacing:1px}
 </style>
 </head>
 <body>
 <div id="app">
   <aside>
-    <div class="eyebrow">ÁLBUM MUTANTE · NIVEL 01</div>
-    <h1>Diez pisos.<br>Un profesor.<br><span>¡La revancha!</span></h1>
-    <p>Algo salió muy mal en el laboratorio.<br>Trepa por las tuberías, la cocina y la biblioteca<br>hasta el dormitorio del profesor.</p>
+    <div class="eyebrow">ÁLBUM MUTANTE · 6 EDIFICIOS</div>
+    <h1>Seis edificios.<br>Sesenta pisos.<br><span>¡La revancha!</span></h1>
+    <p>Algo salió muy mal en el laboratorio. Trepa por alcantarillas, invernaderos, museos, fábricas y observatorios hasta el dormitorio del profesor.</p>
     <small>ARCADE · TERROR CÓMICO</small>
   </aside>
 
   <main id="cabinet">
+    <img id="title-logo" src="assets/logo-oficial.webp" alt="La Mano Araña Mutante">
     <canvas id="c" aria-label="Juego de escalada: evita peligros y recoge LUZ"></canvas>
+    <button id="album-launch" aria-label="Abrir álbum de láminas">ÁLBUM · 0/40</button>
     <div id="hud">
+      <div><small>EDIFICIO</small><br><span id="building-number">1 / 6</span></div>
       <div><small>PISO</small><br><span id="score">1 / 10</span></div>
       <div><small>PUNTOS</small><br><span id="points">0</span></div>
       <div><small>LUZ</small><br><span id="dna">0 / 5</span></div>
@@ -88,10 +131,11 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
       <button id="web">TELARAÑA</button>
     </div>
     <div id="overlay">
-      <small>PROTOTIPO 03 · EL ESCAPE</small>
+      <small>6 EDIFICIOS · 60 PISOS · 40 LÁMINAS</small>
       <h2>LA MANO ARAÑA<br><span style="color:#c4fa50">MUTANTE</span></h2>
       <p>Sube al piso 10. Encuentra al profesor dormido.<br>¡Y dale una sorpresa en la cara!</p>
-      <button id="start" class="primary">CARGANDO…</button>
+      <label style="display:block;margin:8px">Elige edificio <select id="building-select" style="display:block;max-width:100%;padding:10px;margin:6px auto;background:#261b30;color:#f8edcf;border:1px solid #b9a479;border-radius:8px"><option value="1">1 · Laboratorio del profesor</option><option value="2">2 · Alcantarillas Mutantes</option><option value="3">3 · Invernadero Carnívoro</option><option value="4">4 · Museo de los Bichos</option><option value="5">5 · Fábrica Tóxica</option><option value="6">6 · Observatorio Chiflado</option></select></label>
+      <div class="menu-row"><button id="start" class="primary">CARGANDO…</button><button id="album-menu" class="secondary" aria-label="Abrir álbum de láminas">ÁLBUM · 0/40</button><button id="sound-menu" class="secondary" aria-label="Activar o desactivar sonido">♪ ON</button></div>
       <p style="font-size:12px">Arrastra la mano o usa ← → · Espacio: telaraña · Enter: empezar</p>
       <small id="record"></small>
     </div>
@@ -100,16 +144,21 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
   <aside>
     <button id="sound">SONIDO: ON</button>
     <div class="card"><small>01 / SOBREVIVE</small><b>El laboratorio no te quiere libre.</b>
-      <p>Esquiva aerosoles, matamoscas, zapatos y moscas gigantes. Cuidado con la <b style="display:inline">sombra roja</b>: un pisotón viene en camino.</p></div>
-    <div class="card"><small>04 / COLECCIONA</small><b>17 láminas asquerosamente adorables.</b>
-      <p>Cada partida te da MOCO para abrir sobres. Completa conjuntos y desbloquea aspectos para tu mano.</p></div>
+      <p>En el laboratorio: aerosoles, matamoscas, zapatos y moscas gigantes. Cuidado con la <b style="display:inline">sombra roja</b>: un pisotón viene en camino. En los demás edificios, con el <b style="display:inline">aviso amarillo</b> sal de ahí.</p></div>
     <div class="card"><small>02 / EVOLUCIONA</small><b>Bichos con superpoderes.</b>
       <p>Amarillo: carga mutante (atrae bichos). Azul: escudo. Verde: recupera una vida. Encadena bichos sin recibir golpes para multiplicar puntos.</p></div>
     <div class="card"><small>03 / DEFIÉNDETE</small>
       <p><span class="key">ESPACIO</span> Teje un escudo durante 2 segundos. Se recarga en 6.<br><span class="key">P</span> / <span class="key">ESC</span> Pausa</p></div>
   </aside>
 </div>
-<script src="game.js"></script>
-<script src="album.js"></script>
+<section id="album-panel" role="dialog" aria-modal="true" aria-labelledby="album-title" hidden>
+<header class="album-head"><div><small>COLECCIÓN 01</small><h2 id="album-title">Álbum mutante</h2></div><button class="album-close" id="album-close">Volver al juego</button></header>
+<p id="album-status" role="status"></p>
+<div class="album-toolbar"><button id="open-pack">Abrir sobre · 3 láminas</button><button id="craft-card">30 ADN → especial nueva</button><label>Mostrar <select id="album-filter"><option value="all">Todas</option><option value="owned">Conseguidas</option><option value="missing">Faltantes</option></select></label></div>
+<p style="max-width:1000px;margin:auto;color:#c6b8ca">En cada edificio ganas un sobre la primera vez que llegas a los pisos 3, 5, 7 y 9, y un sobre especial la primera vez que lo completas. Las repetidas valen 10 ADN. La colección se guarda en este navegador. 40 láminas disponibles; los números 38–40 están reservados.</p>
+<div id="pack-result" aria-live="polite"></div><div id="album-grid"></div>
+</section>
+<section id="card-view" role="dialog" aria-modal="true" aria-label="Lámina ampliada" hidden><button class="album-close" id="card-close">Volver al álbum</button><img id="card-image" alt=""><p id="card-detail"></p><div id="card-actions"></div></section>
+<script src="level-hazards.js"></script><script src="game.js"></script><script src="album.js"></script>
 </body>
 </html>
