@@ -70,3 +70,25 @@ Cada edificio tiene su propia canción en assets:
 Para poner la música definitiva de los niveles 5 y 6, copia los archivos como
 assets/musica-5.mp3 y assets/musica-6.mp3 y cambia esas dos entradas en la lista MUSIC
 al inicio de game.js.
+
+VERSIÓN 13 — COMPRA DE LÁMINAS
+Los puntos de cada partida (ganes o pierdas) se suman a un monedero guardado en el navegador.
+En el álbum, "Comprar lámina · 100 pts" entrega una lámina sorpresa: puede salir repetida.
+Usa las mismas probabilidades que los sobres (común 58 %, rara 30 %, épica 9 %, legendaria 3 %).
+Sobres: uno la primera vez que llegas a cada piso (2 a 10) de cada edificio, más el especial
+de la primera victoria: 60 en total. Se mantienen el ADN y el canje de repetidas.
+
+VERSIÓN 14 — ECONOMÍA DEL ÁLBUM
+Sobres de piso: 1 lámina cada uno (primera vez en cada piso 2 a 10 de cada edificio).
+Sobre especial de victoria: 3 láminas, la última rara o superior (primera victoria de cada edificio).
+Lámina comprada: 1.000 puntos del monedero (antes 100). Para cambiar el precio, edita PRICE en album.js.
+Ritmo estimado: el álbum se completa cerca del edificio 4.
+Los sobres de 3 láminas sin abrir de versiones anteriores se conservan.
+
+VERSIÓN 15 — EDIFICIOS BLOQUEADOS
+Al empezar solo está abierto el edificio 1. Ganar un edificio desbloquea el siguiente,
+hasta llegar al 6. Los ya abiertos se pueden repetir cuando quieras.
+El avance se guarda en este navegador. Quien ya había ganado edificios en versiones
+anteriores conserva esos desbloqueos.
+Para probar todos los edificios sin jugar, abre el juego con ?desbloquear al final
+de la dirección (por ejemplo: index.html?desbloquear). No cambia el avance guardado.

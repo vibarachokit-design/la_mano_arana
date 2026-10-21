@@ -43,6 +43,28 @@ const baseSpeed = () => 155 + floor*15;
 let building = 1;
 const BUILDINGS = ['Laboratorio del profesor','Alcantarillas Mutantes','Invernadero Carnívoro','Museo de los Bichos','Fábrica Tóxica','Observatorio Chiflado'];
 const BUILDING_ZONES = [null,['DESAGÜES','TUBERÍAS','SALA DE BOMBAS','CISTERNA','ÁTICO'],['SEMILLERO','RAÍCES','INVERNADERO','ENREDADERAS','ÁTICO BOTÁNICO'],['DEPÓSITO','INSECTOS','FÓSILES','BIBLIOTECA','ÁTICO DEL MUSEO'],['CALDERAS','MAQUINARIA','CUBAS TÓXICAS','SALA ELÉCTRICA','ÁTICO INDUSTRIAL'],['LABORATORIO CÓSMICO','ENGRANAJES','METEORITOS','CARTAS CELESTES','OBSERVATORIO']];
+/* ---------- Edificios bloqueados: se abren de a uno al ganar el anterior ----------
+   Para probar todos sin jugar, abre el juego con ?desbloquear al final de la dirección. */
+const UNLOCK_KEY = 'mano-unlocked-v1';
+let unlocked = 1;
+try{ unlocked = clamp(Math.floor(+localStorage.getItem(UNLOCK_KEY) || 1), 1, 6) }catch{}
+const TEST_UNLOCK = /[?&]desbloquear\b/.test(location.search);
+if(TEST_UNLOCK) unlocked = 6;
+function saveUnlocked(){ if(TEST_UNLOCK) return; try{ localStorage.setItem(UNLOCK_KEY, unlocked) }catch{} }
+function syncUnlocked(){ // partidas anteriores: cada edificio ya ganado abre el siguiente
+  const earned = window.mutantAlbum?.snapshot().earned || {};
+  for(let b = 1; b <= 5; b++) if(earned[b+'-win']) unlocked = Math.max(unlocked, b+1);
+  saveUnlocked();
+}
+function renderBuildings(){
+  const sel = $('#building-select');
+  [...sel.options].forEach((o, i) => { const n = i+1, locked = n > unlocked;
+    o.disabled = locked; o.textContent = n + ' · ' + BUILDINGS[i] + (locked ? ' · BLOQUEADO' : '') });
+  if(+sel.value > unlocked || !sel.value) sel.value = String(unlocked);
+}
+function recordLine(){
+  return 'EDIFICIOS ABIERTOS · ' + unlocked + '/6' + (bestScore ? ' · RÉCORD ' + bestScore + ' PTS' : '');
+}
 const zoneTitle = z => building===1 ? ZONES[z] : BUILDING_ZONES[building-1][z];
 const ZONES = ['LABORATORIO','TUBERÍAS','COCINA','BIBLIOTECA','DORMITORIO'];
 const zoneFor = h => clamp(Math.floor(h/200), 0, 4);
@@ -171,7 +193,7 @@ function burst(px, py, col, n=18, power=240){
 
 function start(){
   if(window.albumOpen || !ready || state === 'play' || state === 'paused' || state === 'ending') return;
-  building = Math.max(1,Math.min(6,Number($('#building-select').value)||1));
+  building = Math.max(1,Math.min(unlocked,Number($('#building-select').value)||1));
   window.mutantAlbum?.newRun();
   selectMusic(building);
   setState('play');
@@ -227,20 +249,27 @@ c.onpointermove = e => { if(drag) move(e) };
 c.onpointerup = c.onpointercancel = () => drag = false;
 
 const bichos = n => n + (n === 1 ? ' bicho' : ' bichos');
+const walletLine = w => w == null ? '' : '<br><span style="font-size:14px;color:#d9f47c">Monedero: ' + w + ' pts · cada lámina cuesta 1.000</span>';
 function end(win=false){
   setState(win ? 'win' : 'over'); stopMusic();
   if(win){ score += lives*500; window.mutantAlbum?.win(); }
+  const wallet = window.mutantAlbum?.addPoints(score);
   best = Math.max(best, Math.floor(height)); bestScore = Math.max(bestScore, score);
   try{ localStorage.setItem('mano-best-v2', best); localStorage.setItem('mano-best-score-v3', bestScore) }catch{}
   $('#overlay').style.display = 'flex';
   const h2 = $('#overlay h2'); h2.style.display = 'block';
   h2.innerHTML = win ? '¡LA MANO ARAÑA<br>ATACA DE NUEVO!' : '¡TE ATRAPARON!';
   $('#overlay p').innerHTML = win
-    ? '¡Edificio '+building+' completado! ¡El profesor huyó por la ventana!<br>' + bichos(total) + ' · combo máx. x' + Math.max(1, maxCombo) + ' · bono vidas +' + lives*500 + '<br><b style="font-size:22px">' + score + ' PUNTOS</b>'
-    : 'Llegaste al piso ' + floor + ' de 10 · ' + bichos(total) + '.<br><b style="font-size:22px">' + score + ' PUNTOS</b><br>¡El profesor sigue durmiendo!';
+    ? '¡Edificio '+building+' completado! ¡El profesor huyó por la ventana!<br>' + bichos(total) + ' · combo máx. x' + Math.max(1, maxCombo) + ' · bono vidas +' + lives*500 + '<br><b style="font-size:22px">' + score + ' PUNTOS</b>' + walletLine(wallet)
+    : 'Llegaste al piso ' + floor + ' de 10 · ' + bichos(total) + '.<br><b style="font-size:22px">' + score + ' PUNTOS</b>' + walletLine(wallet) + '<br>¡El profesor sigue durmiendo!';
+  let opened = '';
+  if(win && building === unlocked && unlocked < 6){ unlocked++; saveUnlocked(); opened = '<br><b style="color:#c4fa50">¡NUEVO! Edificio ' + unlocked + ' desbloqueado: ' + BUILDINGS[unlocked-1] + '</b>' }
+  if(win && building === 6) opened = '<br><b style="color:#c4fa50">¡Completaste los 6 edificios!</b>';
+  $('#overlay p').innerHTML += opened;
+  renderBuildings();
   if(win && building<6) $('#building-select').value=String(building+1);
   $('#start').textContent = win ? (building<6 ? 'SIGUIENTE EDIFICIO' : 'VOLVER A JUGAR') : 'VOLVER A INTENTAR';
-  $('#record').textContent = 'MEJOR AVANCE · ' + Math.min(100, Math.floor(best/10)) + ' % · RÉCORD ' + bestScore + ' PTS';
+  $('#record').textContent = recordLine();
   if(!win) sfx.lose();
   hud();
 }
@@ -603,13 +632,13 @@ function step(dt){
     const next = Math.min(10, 1 + Math.floor(height/100));
     if(next !== floor){
       floor = next; score += 100; sfx.floorUp(); floater(240, 370, 'PISO '+floor+' · +100', '#caed55', 24);
-      if(floor === 5 || floor === 9){ alarm = 6; sfx.alarm(); toast(floor===9 ? '¡ÚLTIMOS PISOS! El profesor está cerca…' : '¡ALARMA EN EL EDIFICIO!') }
-      else toast('PISO '+floor);
+      const pack = window.mutantAlbum?.floor(floor) ? ' · ¡+1 SOBRE!' : '';
+      if(floor === 5 || floor === 9){ alarm = 6; sfx.alarm(); toast((floor===9 ? '¡ÚLTIMOS PISOS!' : '¡ALARMA EN EL EDIFICIO!') + pack) }
+      else toast('PISO '+floor+pack);
     }
     const z = zoneFor(height);
     if(z !== zone){ prevZone = zone; zone = z; zoneFade = 1; if(zone !== 2 && zone !== 4){ const zn = zoneTitle(zone); setTimeout(() => { if(state==='play') toast('ZONA: ' + zn) }, 900) } }
     zoneFade = Math.max(0, zoneFade - dt*.8);
-    window.mutantAlbum?.floor(floor);
     musicRate();
     if(height >= 1000){
       setState('ending'); ending = 0; stopMusic(true); zone = 4; zoneFade = 0; objects = []; $('#toast').textContent = ''; hud(); return;
@@ -661,7 +690,8 @@ Promise.all(names.map(name => new Promise((resolve, reject) => {
 }))).then(() => {
   ready = true; setState('menu');
   $('#start').textContent = '¡SUBIR AL PISO 10!';
-  $('#record').textContent = 'MEJOR AVANCE · ' + Math.min(100, Math.floor(best/10)) + ' %' + (bestScore ? ' · RÉCORD ' + bestScore + ' PTS' : '');
+  syncUnlocked(); renderBuildings(); $('#building-select').value = String(unlocked); // seguir donde quedaste
+  $('#record').textContent = recordLine();
   hud();
 }).catch(() => {
   $('#start').textContent = 'RECARGAR IMÁGENES'; $('#start').onclick = () => location.reload();
