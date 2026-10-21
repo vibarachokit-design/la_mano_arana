@@ -1,23 +1,25 @@
 LA MANO ARAÑA MUTANTE — ÁLBUM MUTANTE
 
-Descomprime la carpeta completa y abre index.html en un navegador.
-Mantén index.html, game.js, album.js y assets en la misma estructura.
+CÓMO JUGAR
+Abre index.html en un navegador. Mantén index.html, game.js, level-hazards.js,
+album.js y la carpeta assets en la misma estructura.
+En línea (si GitHub Pages está activado): https://vibarachokit-design.github.io/la_mano_arana/
 
-ÁLBUM: botón ÁLBUM en el juego. 40 láminas verticales individuales.
-Un sobre de bienvenida. En cada edificio, sobres la primera vez que llegas a los pisos 3, 5, 7, 9 y la primera vez que ganas (30 en total).
-Cada sobre contiene 3 láminas. El sobre de victoria garantiza una rara o superior.
-Se favorecen las faltantes, sin garantizar que todos los sobres sean nuevos.
-Abre una repetida y canjea una copia extra por 10 ADN. Conservas la última.
-Con 30 ADN consigues una rara, épica o legendaria que aún te falte.
-La colección y sobres se guardan en este navegador; no hay sincronización en línea.
-Al abrir el álbum durante la partida se pausa; al volver se reanuda.
+ESTADO ACTUAL
+- 6 edificios de 10 pisos. Solo el 1 está abierto al empezar; ganar uno abre el siguiente.
+  Para probar todos sin jugar: agrega ?desbloquear al final de la dirección.
+- Álbum de 40 láminas (01–37 y 41–43; 38–40 reservadas).
+- Sobres: uno de bienvenida (3 láminas); uno de 1 lámina la primera vez que llegas a
+  cada piso de cada edificio; uno especial de 3 láminas (rara o mejor) la primera vez
+  que ganas cada edificio.
+- Monedero: los puntos de cada partida se guardan; cada lámina sorpresa cuesta 1.000.
+- Repetidas: cada copia extra vale 10 ADN; con 30 ADN consigues una especial que falte.
+- Música: una canción por edificio (5 y 6 usan provisoriamente las de los niveles 1 y 2).
+- Todo el avance se guarda en el navegador; no hay sincronización en línea.
+- El logo original en PNG ya no está en assets (el juego usa logo-oficial.webp);
+  se puede recuperar desde el historial de GitHub.
 
-La música y el profesor dormido, corriendo y saltando por la ventana
-ya estaban presentes en la carpeta recibida y se conservan.
-
-Validación: sintaxis JS, pruebas de lógica de álbum y decodificación de las 40 imágenes.
-Pendiente: comprobación visual y auditiva en navegador real.
-
+HISTORIAL DE VERSIONES
 VERSIÓN 06 — SEIS EDIFICIOS
 Cada edificio tiene 10 pisos y cinco zonas (una cada dos pisos).
 Elige edificio en la portada; al ganar se propone el siguiente.

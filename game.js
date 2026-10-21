@@ -104,8 +104,6 @@ function noise(d=.2, vol=.06, freq=1200, at=0, bus, q=.8){
     s.connect(f); f.connect(v); v.connect(bus || sfxBus); s.start(now); s.stop(now+d+.02);
   }catch{}
 }
-// Compatibilidad con v1
-function sound(f=440, d=.13){ tone(f, d) }
 
 const sfx = {
   start(){ tone(523,.1,'square',.04); tone(659,.1,'square',.04,.09); tone(784,.18,'square',.04,.18,1) },
