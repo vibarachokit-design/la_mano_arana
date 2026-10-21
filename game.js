@@ -247,10 +247,11 @@ c.onpointermove = e => { if(drag) move(e) };
 c.onpointerup = c.onpointercancel = () => drag = false;
 
 const bichos = n => n + (n === 1 ? ' bicho' : ' bichos');
-const walletLine = w => w == null ? '' : '<br><span style="font-size:14px;color:#d9f47c">Monedero: ' + w + ' pts · cada lámina cuesta 1.000</span>';
+const walletLine = w => w == null ? '' : '<br><span style="font-size:14px;color:#d9f47c">Monedero: ' + w + ' pts · cada lámina cuesta 3.000</span>';
 function end(win=false){
   setState(win ? 'win' : 'over'); stopMusic();
-  if(win){ score += lives*500; window.mutantAlbum?.win(); }
+  const packWon = win && window.mutantAlbum?.win();
+  if(win) score += lives*500;
   const wallet = window.mutantAlbum?.addPoints(score);
   best = Math.max(best, Math.floor(height)); bestScore = Math.max(bestScore, score);
   try{ localStorage.setItem('mano-best-v2', best); localStorage.setItem('mano-best-score-v3', bestScore) }catch{}
@@ -263,6 +264,7 @@ function end(win=false){
   let opened = '';
   if(win && building === unlocked && unlocked < 6){ unlocked++; saveUnlocked(); opened = '<br><b style="color:#c4fa50">¡NUEVO! Edificio ' + unlocked + ' desbloqueado: ' + BUILDINGS[unlocked-1] + '</b>' }
   if(win && building === 6) opened = '<br><b style="color:#c4fa50">¡Completaste los 6 edificios!</b>';
+  if(packWon) opened += '<br><b style="color:#ffd86b">¡Ganaste un sobre de 3 láminas! Ábrelo en el ÁLBUM.</b>';
   $('#overlay p').innerHTML += opened;
   renderBuildings();
   if(win && building<6) $('#building-select').value=String(building+1);

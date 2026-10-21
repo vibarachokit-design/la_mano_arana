@@ -9,10 +9,10 @@ ESTADO ACTUAL
 - 6 edificios de 10 pisos. Solo el 1 está abierto al empezar; ganar uno abre el siguiente.
   Para probar todos sin jugar: agrega ?desbloquear al final de la dirección.
 - Álbum de 40 láminas (01–37 y 41–43; 38–40 reservadas).
-- Sobres: uno de bienvenida (3 láminas); uno de 1 lámina la primera vez que llegas a
-  cada piso de cada edificio; uno especial de 3 láminas (rara o mejor) la primera vez
-  que ganas cada edificio.
-- Monedero: los puntos de cada partida se guardan; cada lámina sorpresa cuesta 1.000.
+- Sobres: uno de bienvenida (3 láminas) y uno especial de 3 láminas (rara o mejor) la
+  primera vez que completas cada edificio. Los pisos ya no dan sobres.
+- Abrir sobre: animación (tocar el sobre, se rompe, las láminas se dan vuelta).
+- Monedero: los puntos de cada partida se guardan; cada lámina adicional cuesta 3.000.
 - Repetidas: cada copia extra vale 10 ADN; con 30 ADN consigues una especial que falte.
 - Música: una canción por edificio (5 y 6 usan provisoriamente las de los niveles 1 y 2).
 - Todo el avance se guarda en el navegador; no hay sincronización en línea.
@@ -94,3 +94,12 @@ El avance se guarda en este navegador. Quien ya había ganado edificios en versi
 anteriores conserva esos desbloqueos.
 Para probar todos los edificios sin jugar, abre el juego con ?desbloquear al final
 de la dirección (por ejemplo: index.html?desbloquear). No cambia el avance guardado.
+
+VERSIÓN 16 — SOBRES Y ANIMACIÓN
+Al completar un edificio por primera vez se gana un sobre de 3 láminas (rara o mejor asegurada).
+Los pisos ya no dan sobres. Cada lámina adicional se compra a 3.000 puntos (PRICE en album.js).
+Animación al abrir sobre: el sobre tiembla, se rompe la tira superior y las láminas salen boca
+abajo y se dan vuelta una a una, con brillo según rareza y aviso ¡NUEVA! si no la tenías.
+Tocar la pantalla, Enter o Espacio adelantan la animación. Compras y canjes de ADN muestran
+la misma revelación de una lámina. Con "reducir movimiento" activado, se muestran sin animación.
+Los sobres de 1 lámina sin abrir de versiones anteriores se pueden seguir abriendo.

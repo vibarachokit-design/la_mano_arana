@@ -18,8 +18,8 @@ Incluye un álbum de 40 láminas coleccionables.
 ## Progreso
 
 - Los edificios se desbloquean de a uno al ganar el anterior.
-- Sobres: uno de 1 lámina la primera vez que llegas a cada piso, y uno especial de 3 láminas al ganar cada edificio.
-- Los puntos de cada partida van a un monedero: cada lámina sorpresa cuesta 1.000 puntos.
+- Sobres: uno de bienvenida y uno especial de 3 láminas (con una rara o mejor) la primera vez que completas cada edificio. Se abren con animación en el álbum.
+- Los puntos de cada partida van a un monedero: cada lámina sorpresa adicional cuesta 3.000 puntos.
 - El avance se guarda en el navegador.
 - Para probar todos los edificios sin jugar: agrega `?desbloquear` al final de la dirección.
 
