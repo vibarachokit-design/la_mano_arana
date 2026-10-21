@@ -31,7 +31,7 @@ c.width = W; c.height = H;
 const ASSET_BASE = window.ASSET_BASE || 'assets/';
 const images = {};
 const names = [...Array.from({length:60},(_,i)=>'hazard-'+(2+Math.floor(i/12))+'-'+Math.floor(i%12/2)+'-'+(i%2)), ...Array.from({length:25},(_,i)=>'building-'+(2+Math.floor(i/5))+'-'+(i%5)), 'cover','background-0','background-1','background-2','background-3','background-4','spray','swatter','shoe','fly','firefly','beetle','moth',
-  'bed','bed-sleeping','window','prof-crouch','prof-launch','prof-dive','prof-nightcap',...Array.from({length:4},(_,i)=>'prof-run-'+i),...Array.from({length:8},(_,i)=>'hand-'+i)];
+  'bed','bed-sleeping','window','prof-crouch','prof-launch','prof-dive','prof-nightcap',...Array.from({length:4},(_,i)=>'prof-run-'+i),...Array.from({length:8},(_,i)=>'hand-'+i), ...(window.END_SPRITES || (typeof END_SPRITES !== 'undefined' ? END_SPRITES : []))];
 
 // Tamaños de dibujo y cajas de colisión (medio ancho, medio alto) por tipo
 const SIZE = {swatter:[115,155], spray:[130,140], shoe:[110,110], fly:[90,90], firefly:[65,65], beetle:[65,65], moth:[65,65]};
@@ -296,9 +296,10 @@ function end(win=false){
   try{ localStorage.setItem('mano-best-v2', best); localStorage.setItem('mano-best-score-v3', bestScore) }catch{}
   $('#overlay').style.display = 'flex';
   const h2 = $('#overlay h2'); h2.style.display = 'block';
-  h2.innerHTML = win ? '¡LA MANO ARAÑA<br>ATACA DE NUEVO!' : '¡TE ATRAPARON!';
+  const scene = endingScene();
+  h2.innerHTML = win ? (scene?.title || '¡LA MANO ARAÑA<br>ATACA DE NUEVO!') : '¡TE ATRAPARON!';
   $('#overlay p').innerHTML = win
-    ? '¡Edificio '+building+' completado! ¡El profesor huyó por la ventana!<br>' + bichos(total) + ' · combo máx. x' + Math.max(1, maxCombo) + ' · bono vidas +' + lives*500 + '<br><b style="font-size:22px">' + score + ' PUNTOS</b>' + walletLine(wallet, dnaGain)
+    ? '¡Edificio '+building+' completado! ' + (scene?.outro || '¡El profesor huyó por la ventana!') + '<br>' + bichos(total) + ' · combo máx. x' + Math.max(1, maxCombo) + ' · bono vidas +' + lives*500 + '<br><b style="font-size:22px">' + score + ' PUNTOS</b>' + walletLine(wallet, dnaGain)
     : 'Llegaste al piso ' + floor + ' de 10 · ' + bichos(total) + '.<br><b style="font-size:22px">' + score + ' PUNTOS</b>' + walletLine(wallet, dnaGain) + '<br>¡El profesor sigue durmiendo!';
   let opened = '';
   if(win && building === unlocked && unlocked < 6){ unlocked++; saveUnlocked(); opened = '<br><b style="color:#c4fa50">¡NUEVO! Edificio ' + unlocked + ' desbloqueado: ' + BUILDINGS[unlocked-1] + '</b>' }
@@ -416,8 +417,11 @@ function drawRoom(){
   spriteC('window', WIN.cx, WIN.cy, WIN.scale);
 }
 
+// Escena final del edificio actual: la del edificio 1 está aquí; las de 2 a 6 en endings.js.
+const endingScene = () => building > 1 && typeof ENDINGS !== 'undefined' ? ENDINGS[building] : null;
 function drawFinale(){
-  const e = ending;
+  const e = ending, sc = endingScene();
+  if(sc){ sc.draw(e); finaleText(e, sc); return }
   drawRoom();
 
   // ---- Cama: con el profesor dormido hasta el susto, luego vacía (el cambio se oculta con la nube) ----
@@ -496,14 +500,20 @@ function drawFinale(){
     image('hand-'+(k < 1 ? 4 : 7), hx, hy, k < 1 ? 82 : 110, k < 1 ? 82 : 110);
   }
 
+  finaleText(e, null);
+}
+function finaleText(e, sc){
   if(state==='win') return; // el resultado ya lo muestra la capa HTML
+  const [t1, t2] = sc?.canvasTitle || ['¡LA MANO ARAÑA', 'ATACA DE NUEVO!'];
   if(e > 7.6){
     const k = ease(phase(e, 7.6, 8)); g.save(); g.translate(240, 205); g.scale(k, k);
-    g.fillStyle='#14210d'; g.font='900 26px system-ui'; g.textAlign='center'; g.fillText('¡LA MANO ARAÑA',2,-13); g.fillText('ATACA DE NUEVO!',2,19);
-    g.fillStyle='#cbe750'; g.fillText('¡LA MANO ARAÑA',0,-15); g.fillText('ATACA DE NUEVO!',0,17); g.restore();
+    g.fillStyle='#14210d'; g.font='900 26px system-ui'; g.textAlign='center'; g.fillText(t1,2,-13); g.fillText(t2,2,19);
+    g.fillStyle='#cbe750'; g.fillText(t1,0,-15); g.fillText(t2,0,17); g.restore();
   }
   g.fillStyle='#f1e3bf'; g.font='bold 18px system-ui'; g.textAlign='center';
-  g.fillText(e<3 ? 'Chuuut… el profesor duerme.' : e<4.4 ? '¡Una mano en mi cara!' : e<7.4 ? '¡Corre, profesor, corre!' : '¡Edificio '+building+' completado!', 240, 120);
+  if(sc){ g.strokeStyle='#0c0812cc'; g.lineWidth=5; g.lineJoin='round'; g.strokeText(sc.caption(e), 240, 120) }
+  g.fillText(sc ? sc.caption(e) :
+    e<3 ? 'Chuuut… el profesor duerme.' : e<4.4 ? '¡Una mano en mi cara!' : e<7.4 ? '¡Corre, profesor, corre!' : '¡Edificio '+building+' completado!', 240, 120);
   if(state==='ending' && e > 1.2 && e < 7.6){ g.globalAlpha = .55 + Math.sin(t*4)*.25; g.font='13px system-ui'; g.fillText('Toca o pulsa Espacio para saltar', 240, 790); g.globalAlpha = 1 }
 }
 
@@ -655,7 +665,9 @@ function step(dt){
 
   if(state === 'ending'){
     const before = ending; ending += dt;
-    const cross = x => before < x && ending >= x;
+    const cross = x => before < x && ending >= x, sc = endingScene();
+    if(sc){ sc.sfx(cross, before, ending); if(cross(7.6)) sfx.win(); if(ending >= 10) end(true) }
+    else{
     if(cross(2.98)){ professorScream(); noise(.35,.1,700) }
     if(cross(3.5)){ noise(.18,.12,180); tone(90,.2,'sine',.08) }       // aterrizaje
     if(ending >= 4.4 && ending < 6.3){                                   // pasos sincronizados con la carrera
@@ -666,6 +678,7 @@ function step(dt){
     if(cross(6.5)) noise(.6,.06,1500,0,null,.5);                         // whoosh
     if(cross(7.6)) sfx.win();
     if(ending >= 10) end(true);
+    }
   }
 
   if(state === 'play'){

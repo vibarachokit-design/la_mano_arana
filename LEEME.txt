@@ -12,7 +12,7 @@ ESTADO ACTUAL
 - Sobres: superar un edificio por primera vez regala un sobre de 3 láminas (rara o mejor)
   que se abre al tiro con animación. No hay sobre de bienvenida ni sobres por piso.
 - Moco puntos: los puntos de cada partida se guardan. Sobre de 3 láminas: 9.000.
-  Lámina suelta: 3.000. (PACK_PRICE y PRICE en album.js.)
+  Lámina suelta: 2.000. (PACK_PRICE y PRICE en album.js.) No se guardan sobres.
 - ADN: 1 por cada 2 bichos y 10 extra al superar un edificio; 10 por cada repetida canjeada.
   Se usa en POTENCIAR (mejoras de la mano) o para canjear una especial faltante (30 ADN).
 - Mejoras (tabla UPGRADES en game.js): escudo de telaraña (3 niveles), vida extra (2),
@@ -132,3 +132,18 @@ Menú POTENCIAR (portada y pantalla de resultado, también desde el álbum): mej
   Mutación más larga: 20/40/70 ADN · dura 9/11/13 s; desde el nivel 2 se activa con 4 luces.
 Cada partida da ADN: 1 por cada 2 bichos y 10 extra si superas el edificio.
 Las mejoras se guardan con la colección y se incluyen en el respaldo del avance.
+
+VERSIÓN 19 — FINALES PROPIOS Y REGLA DE SOBRES
+Regla de sobres: cada edificio superado por primera vez regala un sobre de 3 láminas (rara o
+mejor) que se abre al tiro. No se guardan sobres: se quitó "Abrir sobre guardado" y los sobres
+pendientes de versiones anteriores se descartan. Comprar: sobre de 3 a 9.000 moco puntos,
+lámina suelta a 2.000.
+Finales animados nuevos (endings.js, sprites assets/end-*.webp recortados de las láminas de arte):
+  2 Alcantarillas: plátano en el sillón → se lanza a la chimenea → sale tiznado por el techo.
+  3 Invernadero: la mano duerme → el profesor le grita ¡BUUU! → la mano queda pegada al techo
+    con los ojos saltados y el profesor se ríe. Título: ¡EL PROFESOR SE VENGÓ!
+  4 Museo: café con la mano en el hombro → café por los aires → huye por la puerta y ¡PAM!
+  5 Fábrica: siesta en la hamaca → la mano baja de un hilo → corre hasta el horizonte.
+  6 Observatorio: espía el laboratorio → corre hacia la pantalla → choca contra el vidrio
+    y queda mareado. Título: ¡LOS 6 EDIFICIOS SON TUYOS!
+Cada final dura 10 s, tiene sonidos propios y se puede saltar como el del edificio 1.
