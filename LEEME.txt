@@ -147,3 +147,7 @@ Finales animados nuevos (endings.js, sprites assets/end-*.webp recortados de las
   6 Observatorio: espía el laboratorio → corre hacia la pantalla → choca contra el vidrio
     y queda mareado. Título: ¡LOS 6 EDIFICIOS SON TUYOS!
 Cada final dura 10 s, tiene sonidos propios y se puede saltar como el del edificio 1.
+
+VERSIÓN 20 — ORDEN DE LOS FINALES
+  2 café y puerta · 3 hamaca en la playa · 4 espía y choca contra el vidrio ·
+  5 sillón y chimenea · 6 el profesor asusta a la mano (título ¡LOS 6 EDIFICIOS SON TUYOS!).

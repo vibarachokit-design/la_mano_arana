@@ -8,16 +8,16 @@
    son de game.js y solo se usan cuando la escena ya está corriendo.
    ============================================================ */
 const END_SPRITES = [
-  // Edificio 2 · sillón y chimenea
+  // Edificio 5 · sillón y chimenea
   'armchair','prof-sit','prof-scared','hand-front','fireplace','prof-dive2','prof-chimney','banana-fly','smoke',
-  // Edificio 3 · la mano duerme y el profesor se venga
+  // Edificio 6 · el profesor asusta a la mano
   'bed-hand','bed-empty','hand-springs','hand-ceiling','prof-sneak','prof-boo','prof-laugh1','prof-laugh2',
-  // Edificio 4 · café y puerta
+  // Edificio 2 · café y puerta
   'table','cup-spill','cup-empty','door','door-prof1','door-prof2',
   'prof-drink','prof-drink-hand','prof-coffee-scared','hand-jump','chair-tip','prof-spill','prof-run-r1','prof-run-r2',
-  // Edificio 5 · hamaca en la playa
+  // Edificio 3 · hamaca en la playa
   'hammock-sleep','hammock-empty','hand-thread1','hand-thread2','prof-jump','run-back1','run-back2','run-back3','run-back4','run-back5','dust',
-  // Edificio 6 · pasillo y vidrio
+  // Edificio 4 · pasillo y vidrio
   'prof-peek','prof-hall-scared','run-front1','run-front2','face-glass','prof-dizzy','glass-crack'
 ].map(n => 'end-' + n);
 
@@ -84,11 +84,175 @@ function endLaugh(at){ [0,.22,.44,.66,.88].forEach((d,i) => tone(300 + (i%2)*40,
    ESCENAS
    ============================================================ */
 const ENDINGS = {
-
-/* ---------- EDIFICIO 2 · el plátano, el sillón y la chimenea ---------- */
+/* ---------- EDIFICIO 2 · el café y la puerta ---------- */
 2: {
+  outro: '¡El profesor huyó por la puerta y dejó el café!',
+  caption: e => e<2.4 ? 'Un café calentito para el profesor…' : e<3.2 ? '¿Quién está en tu hombro?' : e<4.3 ? '¡Café por todos lados!' : e<6.7 ? '¡Huye por la puerta!' : e<7.4 ? '¡PAM!' : '¡Edificio 2 completado!',
+  draw(e){
+    // comedor cálido
+    wallpaper('#3a2618', '#4c3120', 600, '#ffffff0a');
+    g.fillStyle = '#2e1d12'; g.fillRect(0,520,W,80); g.fillStyle = '#5a3b22'; g.fillRect(0,516,W,6);
+    woodFloor(600, '#6a4a2c', '#3b2818');
+    const lampG = g.createRadialGradient(120,160,4,120,160,160); lampG.addColorStop(0,'rgba(255,210,120,.35)'); lampG.addColorStop(1,'rgba(255,210,120,0)');
+    g.fillStyle = lampG; g.fillRect(0,0,300,320);
+    // puerta (cambia mientras el profesor sale)
+    const DX = 392, DB = 640, DH = 360;
+    if(e >= 6.0 && e < 6.3) endH('door-prof1', DX, DB, DH);
+    else if(e >= 6.3 && e < 6.65) endH('door-prof2', DX, DB, DH);
+    else { const slam = e >= 6.65 ? Math.exp(-(e-6.65)*6)*Math.sin((e-6.65)*50)*.03 : 0; endH('door', DX, DB, DH, slam) }
+    endH('table', 92, 650, 150);
+    if(e < 3.8){
+      // tomando café; la mano sube por la silla hasta su hombro
+      if(e < 2.6){
+        endH('prof-drink', 210, 700, 340, Math.sin(t*1.6)*.01);
+        for(let i=0;i<3;i++){ const k = ((t*.6 + i/3) % 1); g.globalAlpha = (1-k)*.5; g.strokeStyle = '#fff'; g.lineWidth = 3;
+          g.beginPath(); g.moveTo(252 + i*8, 430 - k*60); g.quadraticCurveTo(262 + i*8 + Math.sin(t*3+i)*10, 410 - k*60, 252 + i*8, 392 - k*60); g.stroke() }
+        g.globalAlpha = 1;
+        if(e > 1.0){ const k = ease(phase(e, 1.0, 2.55)); endHand(lerp(-60, 120, k), lerp(700, 470, k), 88, true, -.5*k) }
+      }else if(e < 3.2) endH('prof-drink-hand', 214, 700, 345);
+      else { endH('prof-coffee-scared', 222 + Math.sin(e*70)*4, 700, 360); endBubble(330, 250, '¡¡AAAH!!', phase(e, 3.25, 3.4)) }
+    }else{
+      // la silla se cae, la mano queda saltando y la taza termina en el piso
+      endH('chair-tip', 150, 700, 250);
+      if(e < 6.7) endH('hand-jump', 120, 520 - Math.abs(Math.sin(e*7))*24, 150);
+      else endHand(150, 640, 96, false, Math.sin(t*6)*.08);
+      const kc = phase(e, 3.8, 4.4);
+      if(kc < 1) endC('cup-spill', lerp(270, 300, kc), 560 - Math.sin(kc*Math.PI)*90 + kc*120, 64, kc*6);
+      else endH('cup-empty', 300, 700, 46, .2);
+      // salto y carrera hacia la puerta
+      if(e < 4.3){ const k = ease(phase(e, 3.8, 4.3)); endH('prof-spill', lerp(240, 270, k), 700 - Math.sin(k*Math.PI)*60, 330) }
+      else if(e < 6.0){
+        const k = phase(e, 4.3, 6.0), x = lerp(250, 360, k), f = Math.floor(e/.12) % 2, bob = Math.abs(Math.sin(e*26))*8;
+        endH(f ? 'prof-run-r2' : 'prof-run-r1', x, 708 - bob, 300 - k*30);
+        for(let p=0;p<3;p++){ const kd = ((e*3 + p/3) % 1); puff(x - 90 - kd*30, 700, kd, 5, 14, p) }
+      }
+    }
+    endFlash(e, 3.2);
+  },
+  sfx(cross, before, now){
+    if(cross(3.2)){ professorScream(); noise(.3,.1,700) }
+    if(cross(3.85)){ noise(.4,.1,900,0,null,.6); tone(500,.2,'sine',.04,0,.4) }
+    if(cross(4.35)){ noise(.2,.1,200) }
+    stepsSfx(before, now, 4.3, 6.0, .16);
+    if(cross(6.05)) tone(300,.2,'triangle',.04,0,.5);
+    if(cross(6.65)){ noise(.3,.18,150); tone(70,.3,'sine',.1); shake = Math.max(shake, 10) }
+  }
+},
+
+
+/* ---------- EDIFICIO 3 · la hamaca en la playa ---------- */
+3: {
+  outro: '¡El profesor corrió hasta el horizonte!',
+  caption: e => e<1.9 ? 'Siesta en la hamaca al atardecer…' : e<3.2 ? 'Algo baja de las palmeras…' : e<4.0 ? '¡SUSTO EN LA HAMACA!' : e<7.0 ? '¡Corre hasta el horizonte!' : e<7.4 ? 'La hamaca ahora es de la mano' : '¡Edificio 3 completado!',
+  draw(e){
+    const HZ = 470;
+    const sky = g.createLinearGradient(0,0,0,HZ); sky.addColorStop(0,'#3b1f5e'); sky.addColorStop(.55,'#c45a6a'); sky.addColorStop(1,'#ffb84d');
+    g.fillStyle = sky; g.fillRect(0,0,W,HZ);
+    const sun = g.createRadialGradient(330,HZ-10,10,330,HZ-10,140); sun.addColorStop(0,'rgba(255,240,170,1)'); sun.addColorStop(.25,'rgba(255,214,110,.9)'); sun.addColorStop(1,'rgba(255,180,80,0)');
+    g.fillStyle = sun; g.beginPath(); g.arc(330,HZ-10,140,0,Math.PI*2); g.fill();
+    g.fillStyle = '#5d3a6b'; g.beginPath(); g.moveTo(0,HZ); g.lineTo(60,HZ-50); g.lineTo(130,HZ-20); g.lineTo(190,HZ-60); g.lineTo(260,HZ); g.fill();
+    const sea = g.createLinearGradient(0,HZ,0,HZ+60); sea.addColorStop(0,'#7a5aa0'); sea.addColorStop(1,'#4a3a7a');
+    g.fillStyle = sea; g.fillRect(0,HZ,W,60);
+    g.strokeStyle = '#ffd98a88'; g.lineWidth = 2; for(let i=0;i<6;i++){ const yy = HZ+8+i*9, xx = 300 + Math.sin(t*2+i)*14; g.beginPath(); g.moveTo(xx-30+i*4,yy); g.lineTo(xx+30-i*4,yy); g.stroke() }
+    const sand = g.createLinearGradient(0,HZ+56,0,H); sand.addColorStop(0,'#e8b765'); sand.addColorStop(1,'#b8803c');
+    g.fillStyle = sand; g.fillRect(0,HZ+56,W,H-HZ-56);
+    g.fillStyle = '#f2cf86'; g.beginPath(); g.moveTo(318,HZ+56); g.lineTo(342,HZ+56); g.lineTo(430,H); g.lineTo(150,H); g.fill();
+    const runner = () => {
+    // el profesor corre por el camino hacia el horizonte
+    if(e >= 3.95 && e < 6.9){
+      const k = phase(e, 3.95, 6.6), kk = 1 - Math.pow(1-k, 1.6);
+      const x = lerp(400, 330, kk), y = lerp(800, HZ+70, kk), h = lerp(240, 26, kk);
+      const frames = h > 120 ? ['run-back1','run-back2'] : h > 60 ? ['run-back3','run-back4'] : ['run-back4','run-back5'];
+      const f = frames[Math.floor(e/.11) % 2];
+      if(e < 6.6) endH(f, x, y - Math.abs(Math.sin(e*24))*h*.04, h);
+      if(e > 6.45){ const kd = phase(e, 6.45, 6.95); g.globalAlpha = 1-kd; endC('dust', 330, HZ+60, 34 + kd*30); g.globalAlpha = 1 }
+    }
+    };
+    // hamaca entre palmeras
+    const sway = Math.sin(t*1.3)*.012;
+    if(e < 3.2){ endH('hammock-sleep', 232, 790, 450, sway); if(e < 3.0) endZzz(150, 560) }
+    else endH('hammock-empty', 232, 790, 450, sway);
+    // la mano baja colgando de un hilo y se queda en la hamaca
+    if(e >= 1.9 && e < 3.25){
+      const k = ease(phase(e, 1.9, 3.1)), f = Math.floor(e/.3) % 2;
+      endH(f ? 'hand-thread2' : 'hand-thread1', 250, lerp(-10, 520, k), 300);
+    }else if(e >= 3.25){
+      endHand(236 + Math.sin(t*1.3)*6, 626, 104, false, sway*4);
+    }
+    runner();
+    // salto del susto
+    if(e >= 3.2 && e < 4.0){
+      const k = phase(e, 3.2, 4.0);
+      endC('prof-jump', lerp(200, 245, k), lerp(600, 760, k) - Math.sin(k*Math.PI)*300, 240, -.2 + k*.3);
+      endBubble(330, 220, '¡¡AAAH!!', phase(e, 3.25, 3.4));
+    }
+    endFlash(e, 3.2);
+  },
+  sfx(cross, before, now){
+    if(cross(1.95)) tone(800,1.0,'sine',.02,0,.5);
+    if(cross(3.2)){ professorScream(); noise(.3,.1,700) }
+    stepsSfx(before, now, 4.0, 6.5, .14, .04);
+    if(cross(6.5)) noise(.5,.05,1200,0,null,.6);
+  }
+},
+
+
+/* ---------- EDIFICIO 4 · el pasillo y el vidrio ---------- */
+4: {
+  outro: '¡El profesor corrió tan rápido que chocó contra el vidrio!',
+  caption: e => e<1.6 ? 'El profesor espía su laboratorio…' : e<3.0 ? 'Algo se arrastra por el pasillo…' : e<3.7 ? '¡Una mano a su espalda!' : e<4.85 ? '¡Corre sin mirar!' : e<7.4 ? '¡CRASH! ¡Contra el vidrio!' : '¡Edificio 4 completado!',
+  draw(e){
+    // pasillo en perspectiva
+    const VX = 240, VY = 330;
+    g.fillStyle = '#2a1736'; g.fillRect(0,0,W,H);
+    g.fillStyle = '#3a2148'; g.beginPath(); g.moveTo(0,0); g.lineTo(VX-70,VY-120); g.lineTo(VX-70,VY+110); g.lineTo(0,640); g.fill();
+    g.beginPath(); g.moveTo(W,0); g.lineTo(VX+70,VY-120); g.lineTo(VX+70,VY+110); g.lineTo(W,640); g.fill();
+    g.fillStyle = '#c9e86a'; g.globalAlpha = .55; g.fillRect(VX-70,VY-120,140,230); g.globalAlpha = 1;
+    g.fillStyle = '#5a1f2c'; g.beginPath(); g.moveTo(VX-70,VY+110); g.lineTo(VX+70,VY+110); g.lineTo(W,640); g.lineTo(W,H); g.lineTo(0,H); g.lineTo(0,640); g.fill();
+    g.fillStyle = '#7a2c3a'; g.beginPath(); g.moveTo(VX-30,VY+110); g.lineTo(VX+30,VY+110); g.lineTo(380,H); g.lineTo(100,H); g.fill();
+    for(const [lx,ly] of [[60,230],[420,230]]){ const lg = g.createRadialGradient(lx,ly,2,lx,ly,70); lg.addColorStop(0,'rgba(255,200,110,.8)'); lg.addColorStop(1,'rgba(255,200,110,0)'); g.fillStyle = lg; g.beginPath(); g.arc(lx,ly,70,0,Math.PI*2); g.fill() }
+    if(e < 4.85){
+      if(e < 3.0){
+        // puerta del laboratorio entreabierta y el profesor espiando
+        const dg = g.createLinearGradient(330,0,450,0); dg.addColorStop(0,'rgba(190,255,120,.75)'); dg.addColorStop(1,'rgba(120,200,80,.25)');
+        g.fillStyle = dg; g.fillRect(338, 300, 110, 400);
+        endH('prof-peek', 300, 715, 400, Math.sin(t*2)*.01);
+        if(e > 1.4){ const k = ease(phase(e, 1.4, 2.9)); endHand(lerp(-60, 120, k), 690, 96) }
+      }else if(e < 3.7){
+        endH('prof-hall-scared', 250 + Math.sin(e*70)*4, 730, 400);
+        endBubble(330, 220, '¡¡AAAH!!', phase(e, 3.05, 3.2));
+      }else{
+        // corre hacia la cámara cada vez más grande
+        const k = phase(e, 3.7, 4.85), s = Math.pow(k, 2.2), h = lerp(330, 1150, s), f = Math.floor(e/.1) % 2;
+        endHand(240, 520, 70, false);
+        endH(f ? 'run-front2' : 'run-front1', 240, lerp(720, 1180, s) - Math.abs(Math.sin(e*24))*10, h);
+      }
+    }else{
+      // después del choque: mareado en el piso y la mano mirando desde la puerta
+      endHand(240, 400, 80, false, Math.sin(t*5)*.1);
+      endH('prof-dizzy', 240, 805, 330, Math.sin(t*3)*.04);
+      // la cara aplastada contra el vidrio se resbala hacia abajo
+      if(e < 6.4){
+        const k = ease(phase(e, 5.5, 6.4));
+        g.globalAlpha = 1 - k; endW('face-glass', 240, 420 + k*260, 560); g.globalAlpha = 1;
+      }
+      g.globalAlpha = .75; endW('glass-crack', 240, 400, 620, 0); g.globalAlpha = 1;
+    }
+    endFlash(e, 3.0);
+    endFlash(e, 4.85, .35, '255,255,255');
+  },
+  sfx(cross, before, now){
+    if(cross(3.0)){ professorScream(); noise(.3,.1,700) }
+    stepsSfx(before, now, 3.7, 4.85, .13, .06);
+    if(cross(4.85)){ noise(.5,.2,2500,0,null,.4); noise(.4,.15,300); for(let i=0;i<7;i++) tone(1800+Math.random()*2400,.12,'triangle',.03,.05+i*.06,.7); shake = Math.max(shake, 16) }
+    if(cross(5.6)){ for(let i=0;i<3;i++) tone(1400+i*300,.12,'sine',.03,i*.15,1.2) }
+  }
+},
+
+/* ---------- EDIFICIO 5 · el plátano, el sillón y la chimenea ---------- */
+5: {
   outro: '¡El profesor salió disparado por la chimenea!',
-  caption: e => e<2.4 ? 'El profesor disfruta su plátano…' : e<3.6 ? '¡Una mano en el sillón!' : e<5.2 ? '¡Se lanza a la chimenea!' : e<7.4 ? '¡Hollín y plátano en la cabeza!' : '¡Edificio 2 completado!',
+  caption: e => e<2.4 ? 'El profesor disfruta su plátano…' : e<3.6 ? '¡Una mano en el sillón!' : e<5.2 ? '¡Se lanza a la chimenea!' : e<7.4 ? '¡Hollín y plátano en la cabeza!' : '¡Edificio 5 completado!',
   draw(e){
     if(e < 5.2){
       wallpaper('#26162f', '#3a2248', 610);
@@ -169,12 +333,13 @@ const ENDINGS = {
   }
 },
 
-/* ---------- EDIFICIO 3 · la mano duerme y el profesor se venga ---------- */
-3: {
-  title: '¡EL PROFESOR<br>SE VENGÓ!',
-  canvasTitle: ['¡EL PROFESOR', 'SE VENGÓ!'],
+
+/* ---------- EDIFICIO 6 · el profesor asusta a la mano ---------- */
+6: {
+  title: '¡LOS 6 EDIFICIOS<br>SON TUYOS!',
+  canvasTitle: ['¡LOS 6 EDIFICIOS', 'SON TUYOS!'],
   outro: '¡Esta vez el profesor le dio el susto a la mano!',
-  caption: e => e<2.2 ? 'La mano araña duerme como un bebé…' : e<3.4 ? 'Shhh… alguien se acerca' : e<4.4 ? '¡BUUU!' : e<7.4 ? '¡El susto fue para la mano!' : '¡Edificio 3 completado!',
+  caption: e => e<2.2 ? 'La mano araña duerme como un bebé…' : e<3.4 ? 'Shhh… alguien se acerca' : e<4.4 ? '¡BUUU!' : e<7.4 ? '¡El susto fue para la mano!' : '¡Completaste los 6 edificios!',
   draw(e){
     // ático con vigas y la lámpara verde de araña
     const wall = g.createLinearGradient(0,0,0,620); wall.addColorStop(0,'#2a1b33'); wall.addColorStop(1,'#3d2747');
@@ -220,168 +385,4 @@ const ENDINGS = {
   }
 },
 
-/* ---------- EDIFICIO 4 · el café y la puerta ---------- */
-4: {
-  outro: '¡El profesor huyó por la puerta y dejó el café!',
-  caption: e => e<2.4 ? 'Un café calentito para el profesor…' : e<3.2 ? '¿Quién está en tu hombro?' : e<4.3 ? '¡Café por todos lados!' : e<6.7 ? '¡Huye por la puerta!' : e<7.4 ? '¡PAM!' : '¡Edificio 4 completado!',
-  draw(e){
-    // comedor cálido
-    wallpaper('#3a2618', '#4c3120', 600, '#ffffff0a');
-    g.fillStyle = '#2e1d12'; g.fillRect(0,520,W,80); g.fillStyle = '#5a3b22'; g.fillRect(0,516,W,6);
-    woodFloor(600, '#6a4a2c', '#3b2818');
-    const lampG = g.createRadialGradient(120,160,4,120,160,160); lampG.addColorStop(0,'rgba(255,210,120,.35)'); lampG.addColorStop(1,'rgba(255,210,120,0)');
-    g.fillStyle = lampG; g.fillRect(0,0,300,320);
-    // puerta (cambia mientras el profesor sale)
-    const DX = 392, DB = 640, DH = 360;
-    if(e >= 6.0 && e < 6.3) endH('door-prof1', DX, DB, DH);
-    else if(e >= 6.3 && e < 6.65) endH('door-prof2', DX, DB, DH);
-    else { const slam = e >= 6.65 ? Math.exp(-(e-6.65)*6)*Math.sin((e-6.65)*50)*.03 : 0; endH('door', DX, DB, DH, slam) }
-    endH('table', 92, 650, 150);
-    if(e < 3.8){
-      // tomando café; la mano sube por la silla hasta su hombro
-      if(e < 2.6){
-        endH('prof-drink', 210, 700, 340, Math.sin(t*1.6)*.01);
-        for(let i=0;i<3;i++){ const k = ((t*.6 + i/3) % 1); g.globalAlpha = (1-k)*.5; g.strokeStyle = '#fff'; g.lineWidth = 3;
-          g.beginPath(); g.moveTo(252 + i*8, 430 - k*60); g.quadraticCurveTo(262 + i*8 + Math.sin(t*3+i)*10, 410 - k*60, 252 + i*8, 392 - k*60); g.stroke() }
-        g.globalAlpha = 1;
-        if(e > 1.0){ const k = ease(phase(e, 1.0, 2.55)); endHand(lerp(-60, 120, k), lerp(700, 470, k), 88, true, -.5*k) }
-      }else if(e < 3.2) endH('prof-drink-hand', 214, 700, 345);
-      else { endH('prof-coffee-scared', 222 + Math.sin(e*70)*4, 700, 360); endBubble(330, 250, '¡¡AAAH!!', phase(e, 3.25, 3.4)) }
-    }else{
-      // la silla se cae, la mano queda saltando y la taza termina en el piso
-      endH('chair-tip', 150, 700, 250);
-      if(e < 6.7) endH('hand-jump', 120, 520 - Math.abs(Math.sin(e*7))*24, 150);
-      else endHand(150, 640, 96, false, Math.sin(t*6)*.08);
-      const kc = phase(e, 3.8, 4.4);
-      if(kc < 1) endC('cup-spill', lerp(270, 300, kc), 560 - Math.sin(kc*Math.PI)*90 + kc*120, 64, kc*6);
-      else endH('cup-empty', 300, 700, 46, .2);
-      // salto y carrera hacia la puerta
-      if(e < 4.3){ const k = ease(phase(e, 3.8, 4.3)); endH('prof-spill', lerp(240, 270, k), 700 - Math.sin(k*Math.PI)*60, 330) }
-      else if(e < 6.0){
-        const k = phase(e, 4.3, 6.0), x = lerp(250, 360, k), f = Math.floor(e/.12) % 2, bob = Math.abs(Math.sin(e*26))*8;
-        endH(f ? 'prof-run-r2' : 'prof-run-r1', x, 708 - bob, 300 - k*30);
-        for(let p=0;p<3;p++){ const kd = ((e*3 + p/3) % 1); puff(x - 90 - kd*30, 700, kd, 5, 14, p) }
-      }
-    }
-    endFlash(e, 3.2);
-  },
-  sfx(cross, before, now){
-    if(cross(3.2)){ professorScream(); noise(.3,.1,700) }
-    if(cross(3.85)){ noise(.4,.1,900,0,null,.6); tone(500,.2,'sine',.04,0,.4) }
-    if(cross(4.35)){ noise(.2,.1,200) }
-    stepsSfx(before, now, 4.3, 6.0, .16);
-    if(cross(6.05)) tone(300,.2,'triangle',.04,0,.5);
-    if(cross(6.65)){ noise(.3,.18,150); tone(70,.3,'sine',.1); shake = Math.max(shake, 10) }
-  }
-},
-
-/* ---------- EDIFICIO 5 · la hamaca en la playa ---------- */
-5: {
-  outro: '¡El profesor corrió hasta el horizonte!',
-  caption: e => e<1.9 ? 'Siesta en la hamaca al atardecer…' : e<3.2 ? 'Algo baja de las palmeras…' : e<4.0 ? '¡SUSTO EN LA HAMACA!' : e<7.0 ? '¡Corre hasta el horizonte!' : e<7.4 ? 'La hamaca ahora es de la mano' : '¡Edificio 5 completado!',
-  draw(e){
-    const HZ = 470;
-    const sky = g.createLinearGradient(0,0,0,HZ); sky.addColorStop(0,'#3b1f5e'); sky.addColorStop(.55,'#c45a6a'); sky.addColorStop(1,'#ffb84d');
-    g.fillStyle = sky; g.fillRect(0,0,W,HZ);
-    const sun = g.createRadialGradient(330,HZ-10,10,330,HZ-10,140); sun.addColorStop(0,'rgba(255,240,170,1)'); sun.addColorStop(.25,'rgba(255,214,110,.9)'); sun.addColorStop(1,'rgba(255,180,80,0)');
-    g.fillStyle = sun; g.beginPath(); g.arc(330,HZ-10,140,0,Math.PI*2); g.fill();
-    g.fillStyle = '#5d3a6b'; g.beginPath(); g.moveTo(0,HZ); g.lineTo(60,HZ-50); g.lineTo(130,HZ-20); g.lineTo(190,HZ-60); g.lineTo(260,HZ); g.fill();
-    const sea = g.createLinearGradient(0,HZ,0,HZ+60); sea.addColorStop(0,'#7a5aa0'); sea.addColorStop(1,'#4a3a7a');
-    g.fillStyle = sea; g.fillRect(0,HZ,W,60);
-    g.strokeStyle = '#ffd98a88'; g.lineWidth = 2; for(let i=0;i<6;i++){ const yy = HZ+8+i*9, xx = 300 + Math.sin(t*2+i)*14; g.beginPath(); g.moveTo(xx-30+i*4,yy); g.lineTo(xx+30-i*4,yy); g.stroke() }
-    const sand = g.createLinearGradient(0,HZ+56,0,H); sand.addColorStop(0,'#e8b765'); sand.addColorStop(1,'#b8803c');
-    g.fillStyle = sand; g.fillRect(0,HZ+56,W,H-HZ-56);
-    g.fillStyle = '#f2cf86'; g.beginPath(); g.moveTo(318,HZ+56); g.lineTo(342,HZ+56); g.lineTo(430,H); g.lineTo(150,H); g.fill();
-    const runner = () => {
-    // el profesor corre por el camino hacia el horizonte
-    if(e >= 3.95 && e < 6.9){
-      const k = phase(e, 3.95, 6.6), kk = 1 - Math.pow(1-k, 1.6);
-      const x = lerp(400, 330, kk), y = lerp(800, HZ+70, kk), h = lerp(240, 26, kk);
-      const frames = h > 120 ? ['run-back1','run-back2'] : h > 60 ? ['run-back3','run-back4'] : ['run-back4','run-back5'];
-      const f = frames[Math.floor(e/.11) % 2];
-      if(e < 6.6) endH(f, x, y - Math.abs(Math.sin(e*24))*h*.04, h);
-      if(e > 6.45){ const kd = phase(e, 6.45, 6.95); g.globalAlpha = 1-kd; endC('dust', 330, HZ+60, 34 + kd*30); g.globalAlpha = 1 }
-    }
-    };
-    // hamaca entre palmeras
-    const sway = Math.sin(t*1.3)*.012;
-    if(e < 3.2){ endH('hammock-sleep', 232, 790, 450, sway); if(e < 3.0) endZzz(150, 560) }
-    else endH('hammock-empty', 232, 790, 450, sway);
-    // la mano baja colgando de un hilo y se queda en la hamaca
-    if(e >= 1.9 && e < 3.25){
-      const k = ease(phase(e, 1.9, 3.1)), f = Math.floor(e/.3) % 2;
-      endH(f ? 'hand-thread2' : 'hand-thread1', 250, lerp(-10, 520, k), 300);
-    }else if(e >= 3.25){
-      endHand(236 + Math.sin(t*1.3)*6, 626, 104, false, sway*4);
-    }
-    runner();
-    // salto del susto
-    if(e >= 3.2 && e < 4.0){
-      const k = phase(e, 3.2, 4.0);
-      endC('prof-jump', lerp(200, 245, k), lerp(600, 760, k) - Math.sin(k*Math.PI)*300, 240, -.2 + k*.3);
-      endBubble(330, 220, '¡¡AAAH!!', phase(e, 3.25, 3.4));
-    }
-    endFlash(e, 3.2);
-  },
-  sfx(cross, before, now){
-    if(cross(1.95)) tone(800,1.0,'sine',.02,0,.5);
-    if(cross(3.2)){ professorScream(); noise(.3,.1,700) }
-    stepsSfx(before, now, 4.0, 6.5, .14, .04);
-    if(cross(6.5)) noise(.5,.05,1200,0,null,.6);
-  }
-},
-
-/* ---------- EDIFICIO 6 · el pasillo y el vidrio ---------- */
-6: {
-  title: '¡LOS 6 EDIFICIOS<br>SON TUYOS!',
-  canvasTitle: ['¡LOS 6 EDIFICIOS', 'SON TUYOS!'],
-  outro: '¡El profesor corrió tan rápido que chocó contra el vidrio!',
-  caption: e => e<1.6 ? 'El profesor espía su laboratorio…' : e<3.0 ? 'Algo se arrastra por el pasillo…' : e<3.7 ? '¡Una mano a su espalda!' : e<4.85 ? '¡Corre sin mirar!' : e<7.4 ? '¡CRASH! ¡Contra el vidrio!' : '¡Completaste los 6 edificios!',
-  draw(e){
-    // pasillo en perspectiva
-    const VX = 240, VY = 330;
-    g.fillStyle = '#2a1736'; g.fillRect(0,0,W,H);
-    g.fillStyle = '#3a2148'; g.beginPath(); g.moveTo(0,0); g.lineTo(VX-70,VY-120); g.lineTo(VX-70,VY+110); g.lineTo(0,640); g.fill();
-    g.beginPath(); g.moveTo(W,0); g.lineTo(VX+70,VY-120); g.lineTo(VX+70,VY+110); g.lineTo(W,640); g.fill();
-    g.fillStyle = '#c9e86a'; g.globalAlpha = .55; g.fillRect(VX-70,VY-120,140,230); g.globalAlpha = 1;
-    g.fillStyle = '#5a1f2c'; g.beginPath(); g.moveTo(VX-70,VY+110); g.lineTo(VX+70,VY+110); g.lineTo(W,640); g.lineTo(W,H); g.lineTo(0,H); g.lineTo(0,640); g.fill();
-    g.fillStyle = '#7a2c3a'; g.beginPath(); g.moveTo(VX-30,VY+110); g.lineTo(VX+30,VY+110); g.lineTo(380,H); g.lineTo(100,H); g.fill();
-    for(const [lx,ly] of [[60,230],[420,230]]){ const lg = g.createRadialGradient(lx,ly,2,lx,ly,70); lg.addColorStop(0,'rgba(255,200,110,.8)'); lg.addColorStop(1,'rgba(255,200,110,0)'); g.fillStyle = lg; g.beginPath(); g.arc(lx,ly,70,0,Math.PI*2); g.fill() }
-    if(e < 4.85){
-      if(e < 3.0){
-        // puerta del laboratorio entreabierta y el profesor espiando
-        const dg = g.createLinearGradient(330,0,450,0); dg.addColorStop(0,'rgba(190,255,120,.75)'); dg.addColorStop(1,'rgba(120,200,80,.25)');
-        g.fillStyle = dg; g.fillRect(338, 300, 110, 400);
-        endH('prof-peek', 300, 715, 400, Math.sin(t*2)*.01);
-        if(e > 1.4){ const k = ease(phase(e, 1.4, 2.9)); endHand(lerp(-60, 120, k), 690, 96) }
-      }else if(e < 3.7){
-        endH('prof-hall-scared', 250 + Math.sin(e*70)*4, 730, 400);
-        endBubble(330, 220, '¡¡AAAH!!', phase(e, 3.05, 3.2));
-      }else{
-        // corre hacia la cámara cada vez más grande
-        const k = phase(e, 3.7, 4.85), s = Math.pow(k, 2.2), h = lerp(330, 1150, s), f = Math.floor(e/.1) % 2;
-        endHand(240, 520, 70, false);
-        endH(f ? 'run-front2' : 'run-front1', 240, lerp(720, 1180, s) - Math.abs(Math.sin(e*24))*10, h);
-      }
-    }else{
-      // después del choque: mareado en el piso y la mano mirando desde la puerta
-      endHand(240, 400, 80, false, Math.sin(t*5)*.1);
-      endH('prof-dizzy', 240, 805, 330, Math.sin(t*3)*.04);
-      // la cara aplastada contra el vidrio se resbala hacia abajo
-      if(e < 6.4){
-        const k = ease(phase(e, 5.5, 6.4));
-        g.globalAlpha = 1 - k; endW('face-glass', 240, 420 + k*260, 560); g.globalAlpha = 1;
-      }
-      g.globalAlpha = .75; endW('glass-crack', 240, 400, 620, 0); g.globalAlpha = 1;
-    }
-    endFlash(e, 3.0);
-    endFlash(e, 4.85, .35, '255,255,255');
-  },
-  sfx(cross, before, now){
-    if(cross(3.0)){ professorScream(); noise(.3,.1,700) }
-    stepsSfx(before, now, 3.7, 4.85, .13, .06);
-    if(cross(4.85)){ noise(.5,.2,2500,0,null,.4); noise(.4,.15,300); for(let i=0;i<7;i++) tone(1800+Math.random()*2400,.12,'triangle',.03,.05+i*.06,.7); shake = Math.max(shake, 16) }
-    if(cross(5.6)){ for(let i=0;i<3;i++) tone(1400+i*300,.12,'sine',.03,i*.15,1.2) }
-  }
-}
 };
